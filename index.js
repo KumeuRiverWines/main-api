@@ -32,8 +32,9 @@ const WEBHOOK_ID = "api";
 app.post("/", async (req, res) => {
     res.send().status(200); //Documentation says we should send res ASAP
 
+    const deviceId = req.body.end_device_ids.device_id;
     //console.log(req.body.uplink_message.decoded_payload);
-    console.log(req.body);
+    console.log(deviceId);
 
     //NOW TO TYPE IS ALL OUT LEGIT
     if("uplink_message" in req.body) {
