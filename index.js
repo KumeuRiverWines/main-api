@@ -34,7 +34,8 @@ app.post("/", async (req, res) => {
 
     const deviceId = req.body.end_device_ids.device_id;
     //console.log(req.body.uplink_message.decoded_payload);
-    console.log(deviceId);
+    sendDownlink(deviceId, calculateDelay());
+
 
     //NOW TO TYPE IS ALL OUT LEGIT
     if("uplink_message" in req.body) {
@@ -150,30 +151,21 @@ INSERT INTO sensor (sensor_id, node_id, timestamp, temperature, humidity, dew_po
 */
 
 
-
-
-
-app.get("/downlink/test", (req, res) => {
+function calculateDelay() {
 	let timeDelay = 0;
-
 	const currentTimeMinute = new Date().getMinutes();
 	let offset = currentTimeMinute % intervalTime;	
 	if(1 < offset && offset < (intervalTime-1)) {
 		timeDelay = intervalTime - offset;
-	} 
+	}
 
-	sendDownlink("", (timeDelay % 255)); //Adding the mod because we can only send one byte for delay
-
-	res.send({
-		timeDelay: timeDelay
-	});
-});
-
+	return timeDelay % 255;
+}
 
 function sendDownlink(ID, delay) {
 	const downLinkURL = `https://au1.cloud.thethings.network/api/v3/as/applications/${APP_ID}/webhooks/${WEBHOOK_ID}/devices/${DEV_ID}/down/push`;
 	console.log(downLinkURL);
-
+	console.log(delay);
 	axios({
 		method: 'post',
 		url: downLinkURL,
@@ -182,7 +174,7 @@ function sendDownlink(ID, delay) {
 			downlinks: [{
 				f_port: 15,
 				decoded_payload: {
-					bytes: [1,2,4]
+					bytes: [delay,0]
 				}
 			}]
 		}
