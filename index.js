@@ -6,7 +6,7 @@ app.use(express.json());
 
 //Axios setup
 const axios = require("axios");
-const apiKey = "NNSXS.QOGRSXIHHVKXIWKMPW65S2X2XU3RHXB2LASVKEI.BYZCKGTG3KRWPDURS3NXKNO4WWYRBNGYKDFPB3YV4M6JN2YKTBKA";
+const API_KEY = "NNSXS.QOGRSXIHHVKXIWKMPW65S2X2XU3RHXB2LASVKEI.BYZCKGTG3KRWPDURS3NXKNO4WWYRBNGYKDFPB3YV4M6JN2YKTBKA";
 
 //Postgresql Package
 const Pool = require("pg").Pool;
@@ -23,11 +23,17 @@ const pool = new Pool({
 //RUN TIME VARIABLES
 let intervalTime = 15; //Means that every X there should be a data packet
 
+//Down link variables
+const APP_ID = "kuemu-river-wines-app"; 
+const DEV_ID = "eui-70b3d57ed005de54";
+const WEBHOOK_ID = "api";
+
 
 app.post("/", async (req, res) => {
     res.send().status(200); //Documentation says we should send res ASAP
 
-    console.log(req.body.uplink_message.decoded_payload);
+    //console.log(req.body.uplink_message.decoded_payload);
+    console.log(req.body);
 
     //NOW TO TYPE IS ALL OUT LEGIT
     if("uplink_message" in req.body) {
@@ -127,7 +133,7 @@ async function insertDataIntoDb(values) {
 
 		try {
 			const res = await pool.query(sql);
-			console.log(res);
+			//console.log(res);
 		} catch (error) {
 			console.log(error);
 		}
@@ -143,6 +149,9 @@ INSERT INTO sensor (sensor_id, node_id, timestamp, temperature, humidity, dew_po
 */
 
 
+
+
+
 app.get("/downlink/test", (req, res) => {
 	let timeDelay = 0;
 
@@ -152,7 +161,34 @@ app.get("/downlink/test", (req, res) => {
 		timeDelay = intervalTime - offset;
 	} 
 
+	sendDownlink("", (timeDelay % 255)); //Adding the mod because we can only send one byte for delay
+
 	res.send({
 		timeDelay: timeDelay
 	});
 });
+
+
+function sendDownlink(ID, delay) {
+	const downLinkURL = `https://au1.cloud.thethings.network/api/v3/as/applications/${APP_ID}/webhooks/${WEBHOOK_ID}/devices/${DEV_ID}/down/push`;
+	console.log(downLinkURL);
+
+	axios({
+		method: 'post',
+		url: downLinkURL,
+		headers: { Authorization: `Bearer ${API_KEY}` },
+		data: {
+			downlinks: [{
+				f_port: 15,
+				decoded_payload: {
+					bytes: [1,2,4]
+				}
+			}]
+		}
+	}).then((res) => {
+		console.log("DOWN LINK DONE");
+	}).catch((err) => {
+		console.log(err);
+	});
+}
+
