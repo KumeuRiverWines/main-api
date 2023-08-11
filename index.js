@@ -3,6 +3,11 @@ const express = require("express");
 const app = express();
 app.use(express.json());
 
+
+//Axios setup
+const axios = require("axios");
+const apiKey = "NNSXS.QOGRSXIHHVKXIWKMPW65S2X2XU3RHXB2LASVKEI.BYZCKGTG3KRWPDURS3NXKNO4WWYRBNGYKDFPB3YV4M6JN2YKTBKA";
+
 //Postgresql Package
 const Pool = require("pg").Pool;
 //PASSWORD IS PLAIN TEXT MAKE A .ENV FILE PLZ
@@ -13,6 +18,11 @@ const pool = new Pool({
     password: "QV8nXb2t5B",
     port: "5432"
 });
+
+
+//RUN TIME VARIABLES
+let intervalTime = 15; //Means that every X there should be a data packet
+
 
 app.post("/", async (req, res) => {
     res.send().status(200); //Documentation says we should send res ASAP
@@ -132,3 +142,17 @@ async function insertDataIntoDb(values) {
 INSERT INTO sensor (sensor_id, node_id, timestamp, temperature, humidity, dew_point, wind_speed, leaf_wetness, rainfall) VALUES (1, 1, '2023-06-19T04:41:31.538Z', 255.21, 255.21, NULL, 255.21, 255.21, 255.21)
 */
 
+
+app.get("/downlink/test", (req, res) => {
+	let timeDelay = 0;
+
+	const currentTimeMinute = new Date().getMinutes();
+	let offset = currentTimeMinute % intervalTime;	
+	if(1 < offset && offset < (intervalTime-1)) {
+		timeDelay = intervalTime - offset;
+	} 
+
+	res.send({
+		timeDelay: timeDelay
+	});
+});
