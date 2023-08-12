@@ -28,6 +28,39 @@ const APP_ID = "kuemu-river-wines-app";
 const DEV_ID = "eui-70b3d57ed005de54";
 const WEBHOOK_ID = "api";
 
+//Node state information
+let NodeState = [{
+	key:0,
+	name: "Temperature",
+	delay: 30,
+	count: 2,
+}, {
+	key:1,
+	name: "Humidity",
+	delay: 30,
+	count: 2
+}, {
+	key:2,
+	name: "Wind Direction",
+	delay: 30,
+	count: 2
+}, {
+	key:3,
+	name: "Wind Speed",
+	delay: 30,
+	count: 2
+}, {
+	key:4,
+	name: "Leaf Wetness",
+	delay: 30,
+	count: 2
+}, {
+	key:5,
+	name: "Rain Fall",
+	delay: 30,
+	count: 2
+}];
+
 
 app.post("/", async (req, res) => {
     res.send().status(200); //Documentation says we should send res ASAP
@@ -115,6 +148,20 @@ app.get("/api/data/all/temp", async (req, res) => {
 	} catch (error) {
 		console.log(error);
 	}
+});
+
+//END POINTS FOR DOWNLINK UPDATES TO NODE
+app.post("api/node/update", (req, res) => {
+	res.send({
+		validUpdate: true
+		updateSend: false
+	});
+});
+
+app.get("api/node/info", (req,res) => {
+	res.send({
+		state: NodeState
+	});
 });
 
 
