@@ -159,11 +159,12 @@ app.post("api/node/update", (req, res) => {
 });
 
 app.get("/api/node/info", (req,res) => {
-	const sendArray = NodeState.splice(0,0,intervalTime);
+	NodeState.splice(0,0,intervalTime);
 
 	res.send({
-		state: sendArray
+		state: NodeState
 	});
+	NodeState.splice(0, 1);
 });
 
 
