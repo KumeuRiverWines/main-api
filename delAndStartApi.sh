@@ -33,9 +33,11 @@ echo "new version = $newNum"
 echo Building the new container
 docker build . -t "kumeuapi:v${newNum}"
 
+#need to sleep to let container die
+sleep 5
 
 echo Starting new server
 echo $newNum
-docker run -p 3000:3000 --name "krwapi" -d "kumeuapi:v${newNum}" 
+docker run -p 3000:3000 --name "krwapi$newNum" -d "kumeuapi:v${newNum}" 
 
 echo "Finished"
