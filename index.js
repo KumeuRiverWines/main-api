@@ -158,7 +158,7 @@ app.post("api/node/update", (req, res) => {
 	});
 });
 
-app.get("api/node/info", (req,res) => {
+app.get("/api/node/info", (req,res) => {
 	res.send({
 		state: NodeState
 	});
