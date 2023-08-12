@@ -153,7 +153,7 @@ app.get("/api/data/all/temp", async (req, res) => {
 //END POINTS FOR DOWNLINK UPDATES TO NODE
 app.post("api/node/update", (req, res) => {
 	res.send({
-		validUpdate: true
+		validUpdate: true,
 		updateSend: false
 	});
 });
