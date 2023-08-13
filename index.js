@@ -153,7 +153,7 @@ app.get("/api/data/all/temp", async (req, res) => {
 //END POINTS FOR DOWNLINK UPDATES TO NODE
 app.post("/api/node/update", (req, res) => {
 	//Looking at payload data	
-	const data = req.body;
+	const data = req.body.data;
 	console.log(data);
 	if("loraSend" in data) {
 		console.log("Updating send Delay to : " + data.loraSend);
