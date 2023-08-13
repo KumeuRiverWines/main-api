@@ -174,6 +174,7 @@ app.post("/api/node/update", (req, res) => {
 app.get("/api/node/info", (req,res) => {
 	NodeState.splice(0,0,intervalTime);
 
+	console.log(NodeState);
 	res.send({
 		state: NodeState
 	});
