@@ -11,6 +11,7 @@ const API_KEY = "NNSXS.QOGRSXIHHVKXIWKMPW65S2X2XU3RHXB2LASVKEI.BYZCKGTG3KRWPDURS
 //Postgresql Package
 const Pool = require("pg").Pool;
 //PASSWORD IS PLAIN TEXT MAKE A .ENV FILE PLZ
+/*
 const pool = new Pool({
     user: "kumeu",
     host: "192.168.1.2",
@@ -18,6 +19,7 @@ const pool = new Pool({
     password: "QV8nXb2t5B",
     port: "5432"
 });
+*/
 
 
 //RUN TIME VARIABLES
@@ -236,7 +238,7 @@ function sendDownlink(ID, delay) {
 		headers: { Authorization: `Bearer ${API_KEY}` },
 		data: {
 			downlinks: [{
-				f_port: 15,
+				f_port: 1,
 				decoded_payload: {
 					bytes: [delay,0]
 				}
