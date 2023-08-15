@@ -245,7 +245,7 @@ function sendDownlink(ID, delay) {
 		data: {
 			downlinks: [{
 				f_port: 1,
-				data: {
+				decoded_payload: {
 					bytes: [delay, 0]
 				}
 			}]
