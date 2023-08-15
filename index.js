@@ -229,7 +229,7 @@ function calculateDelay() {
 }
 
 function sendDownlink(ID, delay) {
-	const downLinkURL = `https://au1.cloud.thethings.network/api/v3/as/applications/${APP_ID}/webhooks/${WEBHOOK_ID}/devices/${DEV_ID}/down/push`;
+	const downLinkURL = `https://au1.cloud.thethings.network/api/v3/as/applications/${APP_ID}/webhooks/${WEBHOOK_ID}/devices/${DEV_ID}/down/replace`;
 	console.log(downLinkURL);
 	console.log(delay);
 
