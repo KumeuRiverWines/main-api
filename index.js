@@ -232,6 +232,12 @@ function sendDownlink(ID, delay) {
 	const downLinkURL = `https://au1.cloud.thethings.network/api/v3/as/applications/${APP_ID}/webhooks/${WEBHOOK_ID}/devices/${DEV_ID}/down/push`;
 	console.log(downLinkURL);
 	console.log(delay);
+
+	//Creating the payload string
+	const buffer = Buffer.from(byteArray);
+	const base64Payload = buffer.toString('base64');
+
+
 	axios({
 		method: 'post',
 		url: downLinkURL,
@@ -239,7 +245,7 @@ function sendDownlink(ID, delay) {
 		data: {
 			downlinks: [{
 				f_port: 1,
-				bytes: [delay,0]
+				payload_raw: base64Payload
 			}]
 		}
 	}).then((res) => {
