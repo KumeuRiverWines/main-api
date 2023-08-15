@@ -239,9 +239,7 @@ function sendDownlink(ID, delay) {
 		data: {
 			downlinks: [{
 				f_port: 1,
-				decoded_payload: {
-					bytes: [delay,0]
-				}
+				bytes: [delay,0]
 			}]
 		}
 	}).then((res) => {
