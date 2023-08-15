@@ -245,7 +245,9 @@ function sendDownlink(ID, delay) {
 		data: {
 			downlinks: [{
 				f_port: 1,
-				payload_raw: base64Payload
+				data: {
+					bytes: [delay, 0]
+				}
 			}]
 		}
 	}).then((res) => {
