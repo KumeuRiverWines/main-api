@@ -234,9 +234,9 @@ function sendDownlink(ID, delay) {
 	console.log(delay);
 
 	//Creating the payload string
-	const buffer = Buffer.from(byteArray);
+	const buffer = Buffer.from([delay, 0]);
 	const base64Payload = buffer.toString('base64');
-
+	console.log(base64Payload);
 
 	axios({
 		method: 'post',
