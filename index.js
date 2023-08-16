@@ -63,6 +63,8 @@ let NodeState = [{
 	count: 2
 }];
 
+let updateBytes = []; //Holds the value for the next payload to send
+
 
 app.post("/", async (req, res) => {
     res.send().status(200); //Documentation says we should send res ASAP
@@ -228,15 +230,142 @@ function calculateDelay() {
 	return timeDelay % 255;
 }
 
+
+//HOW DOWN LINK PAYLOADS WORK?
+/** Downlink payload is set into 3 parts
+ * [x] where x = byte numbers
+ * [0] delay time for sync ranging from 0-255
+ * [1] packet type
+ * 	Each bit in a the packet type represents a sensor
+ * 	0 - Temperature
+ * 	1 - Humidity
+ * 	2 - Wind Direction
+ * 	3 - Wind Speed
+ * 	4 - Leaf Wetness
+ * 	5 - Rain Fall
+ * 	6 - LoRa <-- Not a sensor but used for sending 
+ * [2-end] sensor information
+ * 	Each has two bytes of information 
+ * 	1 - Delay in minutes
+ * 	2 - Count in packet
+ */
+//Returns byte array of the downlink payload
+function createDownlinkPayload() {
+
+}
+
+let currentUpdateDelay = 1;
+//End point for manually updateing node 
+app.post("/api/manual/update", (req, res) => {
+	console.log(req.body);
+	if("id" in req.body) {
+		let updateDelay = currentUpdateDelay;
+
+
+		//Valid payload
+		if("updateDelay" in req.body) {
+			if(req.body.updateDelay >= 1 && req.body.updateDelay <= 255) {
+				updateDelay = req.body.updateDelay
+			} else {
+				res.send({
+		 			updated: false,
+					message: "Invalid update delay time"
+				});
+				return;
+			}
+		}  			
+
+		//Now we want to check for sensor information
+		let packetType = 0;
+		const sensors = req.body.sensors;
+		for(const key in sensors) {
+			switch(key) {
+				case "Temperature":
+					packetType = (packetType | (1 << 0));
+					break;
+				case "Humidity":
+					packetType = (packetType | (1 << 1));
+					break;
+				case "Wind Direction":
+					packetType = (packetType | (1 << 2));
+					break;
+				case "Wind Speed":
+					packetType = (packetType | (1 << 3));
+					break;
+				case "Leaf Wetness":
+					packetType = (packetType | (1 << 4));
+					break;
+				case "Rain Fall":
+					packetType = (packetType | (1 << 5));
+					break;
+			}
+		}
+
+		packetType = (packetType | (1 << 6)); //setting the send delay bit
+		
+
+		//Now packet type is set we can make the packet
+		const outputPacket = [calculateDelay(), packetType];
+		for(let i = 0; i < 8; i++) {
+			let mask = (1 << i);
+			if(mask & packetType) {
+				switch(i) {
+					case 0:
+						outputPacket.push(sensors["Temperature"].delay); //Pushing the delay
+						outputPacket.push(sensors["Temperature"].count); //Pushing the count
+						break;
+					case 1:
+						outputPacket.push(sensors["Humidity"].delay); //Pushing the delay
+						outputPacket.push(sensors["Humidity"].count); //Pushing the count
+						break;
+					case 2: 
+						outputPacket.push(sensors["Wind Direction"].delay); //Pushing the delay
+						outputPacket.push(sensors["Wind Direction"].count); //Pushing the count
+						break;
+					case 3: 
+						outputPacket.push(sensors["Wind Speed"].delay); //Pushing the delay
+						outputPacket.push(sensors["Wind Speed"].count); //Pushing the count
+						break;
+					case 4:
+						outputPacket.push(sensors["Leaf Wetness"].delay); //Pushing the delay
+						outputPacket.push(sensors["Leaf Wetness"].count); //Pushing the count
+						break;
+					case 5:
+						outputPacket.push(sensors["Rain Fall"].delay); //Pushing the delay
+						outputPacket.push(sensors["Rain Fall"].count); //Pushing the count
+						break;
+					case 6:
+						outputPacket.push(updateDelay);
+						break;
+				}
+			}
+		}
+
+
+		//Updating the payload to the next payload to send
+		updateBytes = outputPacket;
+
+		res.send({
+			bytes: outputPacket,
+			updated: true
+		});
+		return;
+	} else {
+		res.status(400).send({
+			message: "Invalid payload",
+			updated: false
+		});
+	}
+});
+
+
+
 function sendDownlink(ID, delay) {
 	const downLinkURL = `https://au1.cloud.thethings.network/api/v3/as/applications/${APP_ID}/webhooks/${WEBHOOK_ID}/devices/${DEV_ID}/down/replace`;
-	console.log(downLinkURL);
-	console.log(delay);
 
-	//Creating the payload string
-	const buffer = Buffer.from([delay, 0]);
-	const base64Payload = buffer.toString('base64');
-	console.log(base64Payload);
+	//TEMP PART CREATING FAKE PAYLOAD
+	const payload = updateBytes; 
+
 
 	axios({
 		method: 'post',
@@ -246,7 +375,7 @@ function sendDownlink(ID, delay) {
 			downlinks: [{
 				f_port: 1,
 				decoded_payload: {
-					bytes: [delay, 0]
+					bytes: payload
 				}
 			}]
 		}
@@ -256,4 +385,5 @@ function sendDownlink(ID, delay) {
 		console.log(err);
 	});
 }
+
 
