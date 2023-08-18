@@ -24,6 +24,7 @@ const pool = new Pool({
 
 //RUN TIME VARIABLES
 let intervalTime = 15; //Means that every X there should be a data packet
+let currentMode = "Standard";
 
 //Down link variables
 const APP_ID = "kuemu-river-wines-app"; 
@@ -156,39 +157,59 @@ app.get("/api/data/all/temp", async (req, res) => {
 
 //END POINTS FOR DOWNLINK UPDATES TO NODE
 app.post("/api/node/update", (req, res) => {
-	//Looking at payload data	
-	const data = req.body.data;
-	console.log(data);
-	if("loraSend" in data) {
-		console.log("Updating send Delay to : " + data.loraSend);
-		intervalTime = data.loraSend;
-	}
+	let updated = false;
+	console.log(req.body);
+	const body = req.body;
 
-	if("nodeInfo" in data) {
-		console.log("updating node info");
-		NodeState = data.nodeInfo;
+	if("mode" in body) {
+		switch(body.mode) {
+			case "Standard":
+			case "Turbo":
+			case "Low Power":
+			case "Custom":
+				updated = true;
+				currentMode = body.mode;
+				setPayloadOnMode(currentMode);
+				break;
+		}
 	}
 
 	res.send({
-		validUpdate: true,
-		updateSend: false
+		update: updated
 	});
 });
 
-app.get("/api/node/info", (req,res) => {
-	NodeState.splice(0,0,intervalTime);
-
-	console.log(NodeState);
+app.get("/api/node/mode", (req,res) => {
 	res.send({
-		state: NodeState
+		mode: currentMode,
+		delay: updateDelay,
+		bytes: updateBytes
 	});
-	NodeState.splice(0, 1);
 });
 
 
 app.listen(3000, () => {
     console.log("Starting Kumeu API on PORT 3000");
 });
+
+
+//Function for updating payload for different modes
+function setPayloadOnMode(mode) {
+	switch(mode) {
+		case "Standard":
+			updateDelay = 15; //Updating delay to 15 minutes
+			updateBytes = [127,5,3,5,3,5,3,5,3,5,3,5,3,updateDelay];			
+			break;
+		case "Turbo":
+			updateDelay = 5;	
+			updateBytes = [67,1,5,1,5,updateDelay];
+			break;
+		case "Low Power":
+			updateDelay = 60;
+			updateBytes = [127,5,3,5,3,5,3,5,3,5,3,5,3,updateDelay];			
+			break;
+	}
+}
 
 
 //Function opens DB connection quries the db to insert data to sensor table
@@ -385,5 +406,7 @@ function sendDownlink(ID, delay) {
 		console.log(err);
 	});
 }
+
+
 
 
