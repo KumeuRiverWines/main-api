@@ -134,7 +134,22 @@ app.post("/", async (req, res) => {
 });
 
 app.get("/api/data/all", async (req, res) => {
-    const sql = "SELECT * FROM measurement ORDER BY timestamp DESC LIMIT 10";
+	let count = 10; //Default count is 10
+	//Getting request parameters
+	const params = req.params;
+	if("count" in req.params) {
+		const tempCount = parseInt(params.count); //parsing for int
+		if(tempCount >= 1 && tempCount === NaN) {
+			count = tempCount;
+		} else {
+			res.status(400).send({
+				error: "invalid param"
+			});
+			return;
+		}
+	}
+
+    const sql = `SELECT * FROM measurement ORDER BY timestamp DESC LIMIT ${count}`;
 
     try {
         const response =  await pool.query(sql);
@@ -182,8 +197,6 @@ app.post("/api/node/update", (req, res) => {
 app.get("/api/node/mode", (req,res) => {
 	res.send({
 		mode: currentMode,
-		delay: updateDelay,
-		bytes: updateBytes
 	});
 });
 
