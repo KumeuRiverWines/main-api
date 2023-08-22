@@ -11,7 +11,7 @@ const API_KEY = "NNSXS.QOGRSXIHHVKXIWKMPW65S2X2XU3RHXB2LASVKEI.BYZCKGTG3KRWPDURS
 //Postgresql Package
 const Pool = require("pg").Pool;
 //PASSWORD IS PLAIN TEXT MAKE A .ENV FILE PLZ
-/*
+
 const pool = new Pool({
     user: "kumeu",
     host: "192.168.1.2",
@@ -19,7 +19,7 @@ const pool = new Pool({
     password: "QV8nXb2t5B",
     port: "5432"
 });
-*/
+
 
 
 //RUN TIME VARIABLES
