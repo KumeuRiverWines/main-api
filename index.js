@@ -182,8 +182,6 @@ app.post("/api/node/update", (req, res) => {
 app.get("/api/node/mode", (req,res) => {
 	res.send({
 		mode: currentMode,
-		delay: updateDelay,
-		bytes: updateBytes
 	});
 });
 
