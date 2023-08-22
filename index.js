@@ -136,10 +136,10 @@ app.post("/", async (req, res) => {
 app.get("/api/data/all", async (req, res) => {
 	let count = 10; //Default count is 10
 	//Getting request parameters
-	const params = req.params;
-	if("count" in req.params) {
+	const params = req.query;
+	if("count" in params) {
 		const tempCount = parseInt(params.count); //parsing for int
-		if(tempCount >= 1 && tempCount === NaN) {
+		if(tempCount >= 1 && tempCount !== NaN) {
 			count = tempCount;
 		} else {
 			res.status(400).send({
