@@ -24,6 +24,7 @@ const pool = new Pool({
 
 //RUN TIME VARIABLES
 let intervalTime = 15; //Means that every X there should be a data packet
+let lastIntervalTime = 15; //Intervaltime of the last send
 let currentMode = "Standard";
 
 //Down link variables
@@ -72,15 +73,25 @@ app.post("/", async (req, res) => {
 
 	console.log(req.body);
 
+	const updatedIntervalTime = intervalTime;
     const deviceId = req.body.end_device_ids.device_id;
     //console.log(req.body.uplink_message.decoded_payload);
-    sendDownlink(deviceId, calculateDelay());
+    sendDownlink(deviceId, calculateDelay(), updatedIntervalTime);
 
 
     //NOW TO TYPE IS ALL OUT LEGIT
     if("uplink_message" in req.body) {
         if("decoded_payload" in req.body.uplink_message) {
             let payload = req.body.uplink_message.decoded_payload;
+
+			const sensorMap = new Map();
+			if("temperature" in payload.sensorData) {
+				for(let index in payload.sensorData.temperature) {
+					
+				}
+			}
+
+
 
             //Building the data array to insert into DB  
             if("count" in payload) {
@@ -132,6 +143,8 @@ app.post("/", async (req, res) => {
             }
         }
     }
+
+	lastIntervalTime = updatedIntervalTime;
 
 });
 
@@ -420,6 +433,8 @@ function sendDownlink(ID, delay) {
 		}
 	}).then((res) => {
 		console.log("DOWN LINK DONE");
+		lastIntervalTime = payload[payload.length-1];
+		console.log("Last interval time = " + lastIntervalTime);
 	}).catch((err) => {
 		console.log(err);
 	});
