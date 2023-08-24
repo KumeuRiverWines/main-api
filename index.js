@@ -414,7 +414,7 @@ function sendDownlink(ID, delay) {
 
 	//TEMP PART CREATING FAKE PAYLOAD
 	const payload = updateBytes; 
-
+	lastIntervalTime = payload[payload.length-1];
 
 	axios({
 		method: 'post',
@@ -430,9 +430,6 @@ function sendDownlink(ID, delay) {
 		}
 	}).then((res) => {
 		console.log("DOWN LINK DONE");
-		lastIntervalTime = payload[payload.length-1];
-		console.log(payload[payload.length-1]);
-		console.log("Last interval time = " + lastIntervalTime);
 	}).catch((err) => {
 		console.log(err);
 	});
