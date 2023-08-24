@@ -70,6 +70,8 @@ let updateBytes = []; //Holds the value for the next payload to send
 app.post("/", async (req, res) => {
     res.send().status(200); //Documentation says we should send res ASAP
 
+	console.log(req.body);
+
     const deviceId = req.body.end_device_ids.device_id;
     //console.log(req.body.uplink_message.decoded_payload);
     sendDownlink(deviceId, calculateDelay());
@@ -125,7 +127,7 @@ app.post("/", async (req, res) => {
                         tempArray.push(null);
                     }
 
-                    let value = await insertDataIntoDb(tempArray);
+                    let value = insertDataIntoDb(tempArray);
                 }
             }
         }
@@ -230,18 +232,21 @@ function setPayloadOnMode(mode) {
  *  Inserts data in to "sensor" table in the DB
  * @param { array } values 
  */
-async function insertDataIntoDb(values) {
+function insertDataIntoDb(values) {
 	return new Promise( async (resolve, reject) => {
 		const sql = `INSERT INTO measurement (entry_id, node_id, timestamp, temperature, humidity, dew_point, wind_speed, leaf_wetness, rainfall) VALUES (${values[0]}, ${values[1]}, '${values[2]}', ${values[3]}, ${values[4]}, NULL, ${values[6]}, ${values[7]}, ${values[8]})`;
 		console.log(sql);
 
 		try {
-			const res = await pool.query(sql);
+			pool.query(sql).then((res) => {
+				console.log(res);
+			});
 			//console.log(res);
 		} catch (error) {
 			console.log(error);
+			return reject();
 		}
-		resolve(true);
+		return resolve(true);
 	});
 }
 
