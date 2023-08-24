@@ -433,6 +433,7 @@ function sendDownlink(ID, delay) {
 		}
 	}).then((res) => {
 		console.log("DOWN LINK DONE");
+		console.log(res);
 		lastIntervalTime = payload[payload.length-1];
 		console.log("Last interval time = " + lastIntervalTime);
 	}).catch((err) => {
