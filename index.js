@@ -3,6 +3,8 @@ const express = require("express");
 const app = express();
 app.use(express.json());
 
+//Moment setup
+const moment = require("moment");
 
 //Axios setup
 const axios = require("axios");
@@ -70,79 +72,45 @@ let updateBytes = []; //Holds the value for the next payload to send
 
 app.post("/", async (req, res) => {
     res.send().status(200); //Documentation says we should send res ASAP
+	const totalTime = lastIntervalTime; //Time since the node started collecting data
+	const dateTime = getDateTime(totalTime); //Time stamp for input
 
-	console.log(req.body);
-
-	const updatedIntervalTime = intervalTime;
-    const deviceId = req.body.end_device_ids.device_id;
-    //console.log(req.body.uplink_message.decoded_payload);
-    sendDownlink(deviceId, calculateDelay(), updatedIntervalTime);
-
+	if("end_device_ids" in req.body) {
+		if("device_id" in req.body.end_device_ids) {
+			const deviceId = req.body.end_device_ids.device_id;
+			sendDownlink(deviceId, calculateDelay(), intervalTime);
+		}
+	}
 
     //NOW TO TYPE IS ALL OUT LEGIT
     if("uplink_message" in req.body) {
         if("decoded_payload" in req.body.uplink_message) {
             let payload = req.body.uplink_message.decoded_payload;
+			const queryMap = new Map(); //Maps a date and time to a json object that has all the information for the sql query
 
-			const sensorMap = new Map();
-			if("temperature" in payload.sensorData) {
-				for(let index in payload.sensorData.temperature) {
-					
+			console.log("HERE");
+			const results = await (new Promise((res) => {
+				//temperature
+				const sensors = ["temperature", "humidity", "leafWetness", "rainCollector", "windDirection", "windSpeed"];
+
+				for(let index in sensors) {
+					if(sensors[index] in payload.sensorData) {
+						extractSensorDataFromPayload(queryMap, payload, sensors[index], dateTime, totalTime);	
+					}
+				}
+				res();
+			}));
+
+			if(queryMap.size > 0) {
+				//We can insert into database
+				const queries = mapToQueries(queryMap, deviceId);
+				for(let index in queries) {
+					//Can put into try catch for some form of error handling if want to log errors
+					const res = await queryDb(queries[index]);
 				}
 			}
-
-
-
-            //Building the data array to insert into DB  
-            if("count" in payload) {
-                for(let i = 0; i < payload.count; i++) {
-                    let date = new Date().toISOString();
-
-                    let tempArray = [1, 1, date];                    
-
-                    //Adding temperature data
-                    if("temperature" in payload.sensorData && !Number.isNaN(payload.sensorData.temperature[i])) {
-                        tempArray.push(payload.sensorData.temperature[i]);
-                    } else {
-                        tempArray.push(null);
-                    }
-
-                    //Adding humidity data  
-                    if("humidity" in payload.sensorData && !Number.isNaN(payload.sensorData.humidity[i])) {
-                        tempArray.push(payload.sensorData.humidity[i]);
-                    } else {
-                        tempArray.push(null);
-                    }
-
-                    //Adding DEW POINT DATA //FAKE FOR NOW 
-                    tempArray.push(null); //NULL VALUE UNTIL CALCULATING
-
-                    //Adding wind speed data
-                    if("windSpeed" in payload.sensorData && !Number.isNaN(payload.sensorData.windSpeed[i])) {
-                        tempArray.push(payload.sensorData.windSpeed[i]);
-                    } else {
-                        tempArray.push(null);
-                    }
-
-                    //Adding leaf wetness data
-                    if("leafWetness" in payload.sensorData && !Number.isNaN(payload.sensorData.leafWetness[i])) {
-                        tempArray.push(payload.sensorData.leafWetness[i]);
-                    } else {
-                        tempArray.push(null);
-                    }
-
-                    //Adding rain data
-                    if("rainCollector" in payload.sensorData && !Number.isNaN(payload.sensorData.rainCollector[i])) {
-                        tempArray.push(payload.sensorData.rainCollector[i]);
-                    } else {
-                        tempArray.push(null);
-                    }
-
-                    let value = insertDataIntoDb(tempArray);
-                }
-            }
-        }
-    }
+		}
+   	}
 });
 
 app.get("/api/data/all", async (req, res) => {
@@ -231,7 +199,7 @@ function setPayloadOnMode(mode) {
 			break;
 		case "Low Power":
 			updateDelay = 60;
-			updateBytes = [127,5,3,5,3,5,3,5,3,5,3,5,3,updateDelay];			
+			updateBytes = [127,20,3,20,3,20,3,20,3,20,3,20,3,updateDelay];			
 			break;
 	}
 }
@@ -435,6 +403,114 @@ function sendDownlink(ID, delay) {
 	});
 }
 
+console.log(getDateTime(30).getMinutes());
+function getDateTime(updateTime) {
+	let date = new Date();
+	date.setSeconds(0);	
+	date.setMilliseconds(0);
+	const minutes = date.getMinutes();
+	let minutesToAdjust = -(minutes % updateTime);
+
+	if((-minutesToAdjust) >= (updateTime / 2)) {
+		minutesToAdjust = (updateTime + minutesToAdjust);
+	}
+
+	date.setMinutes(minutes + minutesToAdjust);
+	return date;
+}
+
+//Will be given count as (length-1)-index
+function getBackDate(updateTime, date, count) {
+	const countBackTime = count * updateTime;
+	
+	const momentDate = moment(date);	
+	const updatedDate = momentDate.subtract(countBackTime, "minutes");
 
 
+	return updatedDate.toDate();
+}
 
+//Extracts data from payload and then maps the time to the data in the map
+function extractSensorDataFromPayload(map, payload, name, dateTime, totalTime) {
+	if (name in payload.sensorData) {
+        const count = payload.sensorData[name].length; //Getting the length of the array
+        const collectionInterval = totalTime / count; //Colleciton interval in minutes
+        for (let index = 0; index < count; index++) {
+          const backCount = count - 1 - index; //How many counts backward the time will be
+          const collecitonTime = getBackDate(
+            collectionInterval,
+            dateTime,
+            backCount
+          );
+
+          //Now we want to save the information in a specific time in the insertion map
+          if(map.has(collecitonTime.getTime())) {
+            //We want to append the object with this data
+            const infoObj = map.get(collecitonTime.getTime());
+            if (!(name in infoObj)) {
+              //If there isn't already a temperature
+              infoObj[name] = payload.sensorData[name][index];
+              map.set(collecitonTime.getTime(), infoObj);
+            } else {
+              console.log("BIG ERROR SOMEHOW BUGGGGGGGGGG");
+            }
+          } else {
+            //We want to create a new object to set the value
+            const infoObj = {
+              temperature: payload.sensorData[name][index],
+            };
+            map.set(collecitonTime.getTime(), infoObj);
+          }
+        }
+    }
+}
+
+
+//Sends a query to the database
+//Has no query validation
+function queryDb(query) {
+	return new Promise((res, rej) => {
+		try {
+			pool.query(query).then((result) => {
+				res(true);
+			});
+		} catch (error) {
+			return rej();
+		}
+	});
+}
+
+//Creates a sql query from a map
+//INSERT INTO measurement (entry_id, node_id, timestamp, temperature, humidity, dew_point, wind_speed, leaf_wetness, rainfall) VALUES (${values[0]}, ${values[1]}, '${values[2]}', ${values[3]}, ${values[4]}, NULL, ${values[6]}, ${values[7]}, ${values[8]}
+
+function mapToQueries(map, nodeId) {
+	let outputQueries = []; //
+	const keyArray = Array.from(map.keys());
+
+	for(let index in keyArray) {
+		const date = new Date(keyArray[index]); //Getting the date and time for the input
+		const data = map.get(keyArray[index]);
+		
+		//Adding dew point to data if possible
+		if("temperature" in data && "humidity" in data) {
+			data["dewPoint"] = calculateDewPoint(data["temperature"], data["humidity"]);
+		};
+
+		const tempQuery = `INSERT INTO measurement (entry_id, node_id, timestamp, temperature, humidity, dew_point, wind_speed, leaf_wetness, rainfall) VALUES (1, ${nodeId}, '${date.toISOString()}', ${data["temperature"] ?? "NULL"}, ${data["humidity"] ?? "NULL"}, ${data["dewPoint"] ?? "NULL"}, ${data["windSpeed"] ?? "NULL"}, ${data["leafWetness"] ?? "NULL"}, ${data["rainCollector"] ?? "NULL"}`;
+		outputQueries.push(tempQuery);
+	}
+
+	return outputQueries;	
+}
+
+//Function for calculating dew point
+function calculateDewPoint(temperature, relativeHumidity) {
+  const a = 17.625;
+  const b = 243.04;
+  const lnRH = Math.log(relativeHumidity / 100);
+  const term1 = (a * temperature) / (b + temperature);
+  const term2 = lnRH + term1;
+  const dewPoint = (b * term2) / (a - term2);
+
+  return dewPoint.toFixed(2); // Round to two decimal places
+}
