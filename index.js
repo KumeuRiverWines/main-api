@@ -6,6 +6,8 @@ const express = require("express");
 const app = express();
 app.use(express.json());
 
+//Moment setup
+const moment = require("moment");
 
 //Axios setup
 const axios = require("axios");
@@ -29,6 +31,7 @@ const nodeMap = new Map();
 
 //RUN TIME VARIABLES
 let intervalTime = 15; //Means that every X there should be a data packet
+let lastIntervalTime = 15; //Intervaltime of the last send
 let currentMode = "Standard";
 
 //Down link variables
@@ -39,6 +42,8 @@ const WEBHOOK_ID = "api";
 
 app.post("/", async (req, res) => {
     res.send().status(200); //Documentation says we should send res ASAP
+	const totalTime = lastIntervalTime; //Time since the node started collecting data
+	const dateTime = getDateTime(totalTime); //Time stamp for input
 
     const deviceId = req.body.end_device_ids.device_id;
 	if(!nodeMap.has(deviceId)) {
@@ -51,27 +56,20 @@ app.post("/", async (req, res) => {
     if("uplink_message" in req.body) {
         if("decoded_payload" in req.body.uplink_message) {
             let payload = req.body.uplink_message.decoded_payload;
+			const queryMap = new Map(); //Maps a date and time to a json object that has all the information for the sql query
 
-            //Building the data array to insert into DB  
-            if("count" in payload) {
-                for(let i = 0; i < payload.count; i++) {
-                    let date = new Date().toISOString();
+			console.log("HERE");
+			const results = await (new Promise((res) => {
+				//temperature
+				const sensors = ["temperature", "humidity", "leafWetness", "rainCollector", "windDirection", "windSpeed"];
 
-                    let tempArray = [1, 1, date];                    
-
-                    //Adding temperature data
-                    if("temperature" in payload.sensorData && !Number.isNaN(payload.sensorData.temperature[i])) {
-                        tempArray.push(payload.sensorData.temperature[i]);
-                    } else {
-                        tempArray.push(null);
-                    }
-
-                    //Adding humidity data  
-                    if("humidity" in payload.sensorData && !Number.isNaN(payload.sensorData.humidity[i])) {
-                        tempArray.push(payload.sensorData.humidity[i]);
-                    } else {
-                        tempArray.push(null);
-                    }
+				for(let index in sensors) {
+					if(sensors[index] in payload.sensorData) {
+						extractSensorDataFromPayload(queryMap, payload, sensors[index], dateTime, totalTime);	
+					}
+				}
+				res();
+			}));
 
                     //Adding DEW POINT DATA //FAKE FOR NOW 
                     tempArray.push(null); //NULL VALUE UNTIL CALCULATING
@@ -109,7 +107,7 @@ app.get("/api/data/all", async (req, res) => {
 	const params = req.query;
 	if("count" in params) {
 		const tempCount = parseInt(params.count); //parsing for int
-		if(tempCount >= 1 && tempCount === NaN) {
+		if(tempCount >= 1 && tempCount !== NaN) {
 			count = tempCount;
 		} else {
 			res.status(400).send({
@@ -199,18 +197,21 @@ app.listen(3000, () => {
  *  Inserts data in to "sensor" table in the DB
  * @param { array } values 
  */
-async function insertDataIntoDb(values) {
+function insertDataIntoDb(values) {
 	return new Promise( async (resolve, reject) => {
 		const sql = `INSERT INTO measurement (entry_id, node_id, timestamp, temperature, humidity, dew_point, wind_speed, leaf_wetness, rainfall) VALUES (${values[0]}, ${values[1]}, '${values[2]}', ${values[3]}, ${values[4]}, NULL, ${values[6]}, ${values[7]}, ${values[8]})`;
 		console.log(sql);
 
 		try {
-			const res = await pool.query(sql);
+			pool.query(sql).then((res) => {
+				console.log(res);
+			});
 			//console.log(res);
 		} catch (error) {
 			console.log(error);
+			return reject();
 		}
-		resolve(true);
+		return resolve(true);
 	});
 }
 
