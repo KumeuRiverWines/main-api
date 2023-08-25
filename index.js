@@ -75,9 +75,10 @@ app.post("/", async (req, res) => {
 	const totalTime = lastIntervalTime; //Time since the node started collecting data
 	const dateTime = getDateTime(totalTime); //Time stamp for input
 
+	let deviceId = 1;
 	if("end_device_ids" in req.body) {
 		if("device_id" in req.body.end_device_ids) {
-			const deviceId = req.body.end_device_ids.device_id;
+			deviceId = req.body.end_device_ids.device_id;
 			sendDownlink(deviceId, calculateDelay(), intervalTime);
 		}
 	}
@@ -403,7 +404,7 @@ function sendDownlink(ID, delay) {
 	});
 }
 
-console.log(getDateTime(30).getMinutes());
+
 function getDateTime(updateTime) {
 	let date = new Date();
 	date.setSeconds(0);	
@@ -471,6 +472,7 @@ function extractSensorDataFromPayload(map, payload, name, dateTime, totalTime) {
 function queryDb(query) {
 	return new Promise((res, rej) => {
 		try {
+			console.log(query);
 			pool.query(query).then((result) => {
 				res(true);
 			});
@@ -496,7 +498,7 @@ function mapToQueries(map, nodeId) {
 			data["dewPoint"] = calculateDewPoint(data["temperature"], data["humidity"]);
 		};
 
-		const tempQuery = `INSERT INTO measurement (entry_id, node_id, timestamp, temperature, humidity, dew_point, wind_speed, leaf_wetness, rainfall) VALUES (1, ${nodeId}, '${date.toISOString()}', ${data["temperature"] ?? "NULL"}, ${data["humidity"] ?? "NULL"}, ${data["dewPoint"] ?? "NULL"}, ${data["windSpeed"] ?? "NULL"}, ${data["leafWetness"] ?? "NULL"}, ${data["rainCollector"] ?? "NULL"}`;
+		const tempQuery = `INSERT INTO measurement (entry_id, node_id, timestamp, temperature, humidity, dew_point, wind_speed, leaf_wetness, rainfall) VALUES (1, '${nodeId}', '${date.toISOString()}', ${data["temperature"] ?? "NULL"}, ${data["humidity"] ?? "NULL"}, ${data["dewPoint"] ?? "NULL"}, ${data["windSpeed"] ?? "NULL"}, ${data["leafWetness"] ?? "NULL"}, ${data["rainCollector"] ?? "NULL"})`;
 		outputQueries.push(tempQuery);
 	}
 
