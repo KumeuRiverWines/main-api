@@ -41,21 +41,21 @@ const WEBHOOK_ID = "api";
 
 
 app.post("/", async (req, res) => {
-    res.send().status(200); //Documentation says we should send res ASAP
+	res.send().status(200); //Documentation says we should send res ASAP
 	const totalTime = lastIntervalTime; //Time since the node started collecting data
 	const dateTime = getDateTime(totalTime); //Time stamp for input
 
-    const deviceId = req.body.end_device_ids.device_id;
-	if(!nodeMap.has(deviceId)) {
+	const deviceId = req.body.end_device_ids.device_id;
+	if (!nodeMap.has(deviceId)) {
 		const newNode = new Node(deviceId, "Not Set", "Standard");
 		nodeMap.set(deviceId, newNode);
 	}
-    sendDownlink(deviceId, calculateDelay());
+	sendDownlink(deviceId, calculateDelay());
 
-    //NOW TO TYPE IS ALL OUT LEGIT
-    if("uplink_message" in req.body) {
-        if("decoded_payload" in req.body.uplink_message) {
-            let payload = req.body.uplink_message.decoded_payload;
+	//NOW TO TYPE IS ALL OUT LEGIT
+	if ("uplink_message" in req.body) {
+		if ("decoded_payload" in req.body.uplink_message) {
+			let payload = req.body.uplink_message.decoded_payload;
 			const queryMap = new Map(); //Maps a date and time to a json object that has all the information for the sql query
 
 			console.log("HERE");
@@ -63,42 +63,40 @@ app.post("/", async (req, res) => {
 				//temperature
 				const sensors = ["temperature", "humidity", "leafWetness", "rainCollector", "windDirection", "windSpeed"];
 
-				for(let index in sensors) {
-					if(sensors[index] in payload.sensorData) {
-						extractSensorDataFromPayload(queryMap, payload, sensors[index], dateTime, totalTime);	
+				for (let index in sensors) {
+					if (sensors[index] in payload.sensorData) {
+						extractSensorDataFromPayload(queryMap, payload, sensors[index], dateTime, totalTime);
 					}
 				}
 				res();
 			}));
 
-                    //Adding DEW POINT DATA //FAKE FOR NOW 
-                    tempArray.push(null); //NULL VALUE UNTIL CALCULATING
+			//Adding DEW POINT DATA //FAKE FOR NOW 
+			tempArray.push(null); //NULL VALUE UNTIL CALCULATING
 
-                    //Adding wind speed data
-                    if("windSpeed" in payload.sensorData && !Number.isNaN(payload.sensorData.windSpeed[i])) {
-                        tempArray.push(payload.sensorData.windSpeed[i]);
-                    } else {
-                        tempArray.push(null);
-                    }
+			//Adding wind speed data
+			if ("windSpeed" in payload.sensorData && !Number.isNaN(payload.sensorData.windSpeed[i])) {
+				tempArray.push(payload.sensorData.windSpeed[i]);
+			} else {
+				tempArray.push(null);
+			}
 
-                    //Adding leaf wetness data
-                    if("leafWetness" in payload.sensorData && !Number.isNaN(payload.sensorData.leafWetness[i])) {
-                        tempArray.push(payload.sensorData.leafWetness[i]);
-						s        }
+			//Adding leaf wetness data
+			if ("leafWetness" in payload.sensorData && !Number.isNaN(payload.sensorData.leafWetness[i])) {
+				tempArray.push(payload.sensorData.leafWetness[i]);
+				s
+			}
 
-                    //Adding rain data
-                    if("rainCollector" in payload.sensorData && !Number.isNaN(payload.sensorData.rainCollector[i])) {
-                        tempArray.push(payload.sensorData.rainCollector[i]);
-                    } else {
-                        tempArray.push(null);
-                    }
+			//Adding rain data
+			if ("rainCollector" in payload.sensorData && !Number.isNaN(payload.sensorData.rainCollector[i])) {
+				tempArray.push(payload.sensorData.rainCollector[i]);
+			} else {
+				tempArray.push(null);
+			}
 
-                    let value = await insertDataIntoDb(tempArray);
-                }
-            }
-        }
-    }
-
+			let value = await insertDataIntoDb(tempArray);
+		}
+	}
 });
 
 app.get("/api/data/all", async (req, res) => {
