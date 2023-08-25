@@ -1,3 +1,6 @@
+//Importing classes
+const Node = require("./classes/Node");
+
 //Express Package
 const express = require("express");
 const app = express();
@@ -20,6 +23,8 @@ const pool = new Pool({
     port: "5432"
 });
 
+//Node map "Maps nodeId -> nodeObj"
+const nodeMap = new Map();
 
 
 //RUN TIME VARIABLES
@@ -31,49 +36,16 @@ const APP_ID = "kuemu-river-wines-app";
 const DEV_ID = "eui-70b3d57ed005de54";
 const WEBHOOK_ID = "api";
 
-//Node state information
-let NodeState = [{
-	key:0,
-	name: "Temperature",
-	delay: 30,
-	count: 2,
-}, {
-	key:1,
-	name: "Humidity",
-	delay: 30,
-	count: 2
-}, {
-	key:2,
-	name: "Wind Direction",
-	delay: 30,
-	count: 2
-}, {
-	key:3,
-	name: "Wind Speed",
-	delay: 30,
-	count: 2
-}, {
-	key:4,
-	name: "Leaf Wetness",
-	delay: 30,
-	count: 2
-}, {
-	key:5,
-	name: "Rain Fall",
-	delay: 30,
-	count: 2
-}];
-
-let updateBytes = []; //Holds the value for the next payload to send
-
 
 app.post("/", async (req, res) => {
     res.send().status(200); //Documentation says we should send res ASAP
 
     const deviceId = req.body.end_device_ids.device_id;
-    //console.log(req.body.uplink_message.decoded_payload);
+	if(!nodeMap.has(deviceId)) {
+		const newNode = new Node(deviceId, "Not Set", "Standard");
+		nodeMap.set(deviceId, newNode);
+	}
     sendDownlink(deviceId, calculateDelay());
-
 
     //NOW TO TYPE IS ALL OUT LEGIT
     if("uplink_message" in req.body) {
@@ -114,9 +86,7 @@ app.post("/", async (req, res) => {
                     //Adding leaf wetness data
                     if("leafWetness" in payload.sensorData && !Number.isNaN(payload.sensorData.leafWetness[i])) {
                         tempArray.push(payload.sensorData.leafWetness[i]);
-                    } else {
-                        tempArray.push(null);
-                    }
+						s        }
 
                     //Adding rain data
                     if("rainCollector" in payload.sensorData && !Number.isNaN(payload.sensorData.rainCollector[i])) {
@@ -136,8 +106,8 @@ app.post("/", async (req, res) => {
 app.get("/api/data/all", async (req, res) => {
 	let count = 10; //Default count is 10
 	//Getting request parameters
-	const params = req.params;
-	if("count" in req.params) {
+	const params = req.query;
+	if("count" in params) {
 		const tempCount = parseInt(params.count); //parsing for int
 		if(tempCount >= 1 && tempCount === NaN) {
 			count = tempCount;
@@ -171,27 +141,44 @@ app.get("/api/data/all/temp", async (req, res) => {
 });
 
 //END POINTS FOR DOWNLINK UPDATES TO NODE
+/**
+ * Payload structure
+ * {
+ *	"id": "{id}"
+ *  "mode": "{mode}"
+ * }
+ */
 app.post("/api/node/update", (req, res) => {
 	let updated = false;
 	console.log(req.body);
 	const body = req.body;
 
-	if("mode" in body) {
-		switch(body.mode) {
-			case "Standard":
-			case "Turbo":
-			case "Low Power":
-			case "Custom":
-				updated = true;
-				currentMode = body.mode;
-				setPayloadOnMode(currentMode);
-				break;
+	if("id" in body) {
+		if(nodeMap.has(body.id)) {
+			const node = nodeMap.get(id);
+			if("mode" in body) {
+				node.updateState(body.mode);
+				return (res.send({
+					updated: true
+				}));	
+			} else {
+				return (res.send({
+					updated: false,
+					error: "Invalid Payload - Missing Mode"
+				}));
+			}
+		} else {
+			return (res.send({
+				updated: false,
+				error: "Invalid device ID"
+			}));
 		}
+	} else {
+		return (res.send({
+			updated: false,
+			error: "Invalid Payload - Missing device ID"
+		}));
 	}
-
-	res.send({
-		update: updated
-	});
 });
 
 app.get("/api/node/mode", (req,res) => {
@@ -205,24 +192,6 @@ app.listen(3000, () => {
     console.log("Starting Kumeu API on PORT 3000");
 });
 
-
-//Function for updating payload for different modes
-function setPayloadOnMode(mode) {
-	switch(mode) {
-		case "Standard":
-			updateDelay = 15; //Updating delay to 15 minutes
-			updateBytes = [127,5,3,5,3,5,3,5,3,5,3,5,3,updateDelay];			
-			break;
-		case "Turbo":
-			updateDelay = 5;	
-			updateBytes = [67,1,5,1,5,updateDelay];
-			break;
-		case "Low Power":
-			updateDelay = 60;
-			updateBytes = [127,5,3,5,3,5,3,5,3,5,3,5,3,updateDelay];			
-			break;
-	}
-}
 
 
 //Function opens DB connection quries the db to insert data to sensor table
@@ -245,181 +214,35 @@ async function insertDataIntoDb(values) {
 	});
 }
 
-//DEW POINT CALCULATION = temp - ( (100-humidty) /5)
 
-/*
+function sendDownlink(ID) {
+	if(nodeMap.has(ID)) {
+		const downLinkURL = `https://au1.cloud.thethings.network/api/v3/as/applications/${APP_ID}/webhooks/${WEBHOOK_ID}/devices/${DEV_ID}/down/replace`;
+		const nodeInfo = nodeMap.get(ID);
 
-INSERT INTO sensor (sensor_id, node_id, timestamp, temperature, humidity, dew_point, wind_speed, leaf_wetness, rainfall) VALUES (1, 1, '2023-06-19T04:41:31.538Z', 255.21, 255.21, NULL, 255.21, 255.21, 255.21)
-*/
+		//TEMP PART CREATING FAKE PAYLOAD
+		const payload = nodeInfo.getUpdateBytes();
+		console.log(payload);	
 
-
-function calculateDelay() {
-	let timeDelay = 0;
-	const currentTimeMinute = new Date().getMinutes();
-	let offset = currentTimeMinute % intervalTime;	
-	if(1 < offset && offset < (intervalTime-1)) {
-		timeDelay = intervalTime - offset;
-	}
-
-	return timeDelay % 255;
-}
-
-
-//HOW DOWN LINK PAYLOADS WORK?
-/** Downlink payload is set into 3 parts
- * [x] where x = byte numbers
- * [0] delay time for sync ranging from 0-255
- * [1] packet type
- * 	Each bit in a the packet type represents a sensor
- * 	0 - Temperature
- * 	1 - Humidity
- * 	2 - Wind Direction
- * 	3 - Wind Speed
- * 	4 - Leaf Wetness
- * 	5 - Rain Fall
- * 	6 - LoRa <-- Not a sensor but used for sending 
- * [2-end] sensor information
- * 	Each has two bytes of information 
- * 	1 - Delay in minutes
- * 	2 - Count in packet
- */
-//Returns byte array of the downlink payload
-function createDownlinkPayload() {
-
-}
-
-let currentUpdateDelay = 1;
-//End point for manually updateing node 
-app.post("/api/manual/update", (req, res) => {
-	console.log(req.body);
-	if("id" in req.body) {
-		let updateDelay = currentUpdateDelay;
-
-
-		//Valid payload
-		if("updateDelay" in req.body) {
-			if(req.body.updateDelay >= 1 && req.body.updateDelay <= 255) {
-				updateDelay = req.body.updateDelay
-			} else {
-				res.send({
-		 			updated: false,
-					message: "Invalid update delay time"
-				});
-				return;
+		axios({
+			method: 'post',
+			url: downLinkURL,
+			headers: { Authorization: `Bearer ${API_KEY}` },
+			data: {
+				downlinks: [{
+					f_port: 1,
+					decoded_payload: {
+						bytes: payload
+					}
+				}]
 			}
-		}  			
-
-		//Now we want to check for sensor information
-		let packetType = 0;
-		const sensors = req.body.sensors;
-		for(const key in sensors) {
-			switch(key) {
-				case "Temperature":
-					packetType = (packetType | (1 << 0));
-					break;
-				case "Humidity":
-					packetType = (packetType | (1 << 1));
-					break;
-				case "Wind Direction":
-					packetType = (packetType | (1 << 2));
-					break;
-				case "Wind Speed":
-					packetType = (packetType | (1 << 3));
-					break;
-				case "Leaf Wetness":
-					packetType = (packetType | (1 << 4));
-					break;
-				case "Rain Fall":
-					packetType = (packetType | (1 << 5));
-					break;
-			}
-		}
-
-		packetType = (packetType | (1 << 6)); //setting the send delay bit
-		
-
-		//Now packet type is set we can make the packet
-		const outputPacket = [calculateDelay(), packetType];
-		for(let i = 0; i < 8; i++) {
-			let mask = (1 << i);
-			if(mask & packetType) {
-				switch(i) {
-					case 0:
-						outputPacket.push(sensors["Temperature"].delay); //Pushing the delay
-						outputPacket.push(sensors["Temperature"].count); //Pushing the count
-						break;
-					case 1:
-						outputPacket.push(sensors["Humidity"].delay); //Pushing the delay
-						outputPacket.push(sensors["Humidity"].count); //Pushing the count
-						break;
-					case 2: 
-						outputPacket.push(sensors["Wind Direction"].delay); //Pushing the delay
-						outputPacket.push(sensors["Wind Direction"].count); //Pushing the count
-						break;
-					case 3: 
-						outputPacket.push(sensors["Wind Speed"].delay); //Pushing the delay
-						outputPacket.push(sensors["Wind Speed"].count); //Pushing the count
-						break;
-					case 4:
-						outputPacket.push(sensors["Leaf Wetness"].delay); //Pushing the delay
-						outputPacket.push(sensors["Leaf Wetness"].count); //Pushing the count
-						break;
-					case 5:
-						outputPacket.push(sensors["Rain Fall"].delay); //Pushing the delay
-						outputPacket.push(sensors["Rain Fall"].count); //Pushing the count
-						break;
-					case 6:
-						outputPacket.push(updateDelay);
-						break;
-				}
-			}
-		}
-
-
-		//Updating the payload to the next payload to send
-		updateBytes = outputPacket;
-
-		res.send({
-			bytes: outputPacket,
-			updated: true
+		}).then((res) => {
+			console.log("DOWN LINK DONE");
+			nodeInfo.setLastInterval(nodeInfo.getUpdateInterval());
+		}).catch((err) => {
+			console.log(err);
 		});
-		return;
 	} else {
-		res.status(400).send({
-			message: "Invalid payload",
-			updated: false
-		});
+		console.log("Node is not registered");
 	}
-});
-
-
-
-function sendDownlink(ID, delay) {
-	const downLinkURL = `https://au1.cloud.thethings.network/api/v3/as/applications/${APP_ID}/webhooks/${WEBHOOK_ID}/devices/${DEV_ID}/down/replace`;
-
-	//TEMP PART CREATING FAKE PAYLOAD
-	const payload = updateBytes; 
-
-
-	axios({
-		method: 'post',
-		url: downLinkURL,
-		headers: { Authorization: `Bearer ${API_KEY}` },
-		data: {
-			downlinks: [{
-				f_port: 1,
-				decoded_payload: {
-					bytes: payload
-				}
-			}]
-		}
-	}).then((res) => {
-		console.log("DOWN LINK DONE");
-	}).catch((err) => {
-		console.log(err);
-	});
 }
-
-
-
-
