@@ -72,6 +72,7 @@ class Node {
     #calculateDelay() {
         let timeDelay = 0;
         const date = new Date();
+        const intervalTime = this.state.getUpdateInterval();
 
         const currentTimeMinute = new Date().getMinutes();
         if(date.getSeconds >= 30) {

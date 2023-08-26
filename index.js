@@ -45,12 +45,19 @@ app.post("/", async (req, res) => {
 	const totalTime = lastIntervalTime; //Time since the node started collecting data
 	const dateTime = getDateTime(totalTime); //Time stamp for input
 
+	if(!"end_device_ids" in req.body) {
+		if(!"device_id" in req.body.end_device_ids) {
+			console.log("Invalid payload");
+			return;
+		}
+	}	
+
 	const deviceId = req.body.end_device_ids.device_id;
 	if (!nodeMap.has(deviceId)) {
 		const newNode = new Node(deviceId, "Not Set", "Standard");
 		nodeMap.set(deviceId, newNode);
 	}
-	sendDownlink(deviceId, calculateDelay());
+	sendDownlink(deviceId);
 
 	//NOW TO TYPE IS ALL OUT LEGIT
 	if ("uplink_message" in req.body) {
@@ -70,31 +77,18 @@ app.post("/", async (req, res) => {
 				}
 				res();
 			}));
-
-			//Adding DEW POINT DATA //FAKE FOR NOW 
-			tempArray.push(null); //NULL VALUE UNTIL CALCULATING
-
-			//Adding wind speed data
-			if ("windSpeed" in payload.sensorData && !Number.isNaN(payload.sensorData.windSpeed[i])) {
-				tempArray.push(payload.sensorData.windSpeed[i]);
-			} else {
-				tempArray.push(null);
+			
+			if(queryMap.keys().length > 0) {
+				const queries = mapToQueries(queryDb, deviceId);
+				for(let index in queries) {
+					try {
+						const result = queryDb(queries[index]);
+						console.log(queries[index]);
+					} catch(err) {
+						console.log(err);
+					}
+				}
 			}
-
-			//Adding leaf wetness data
-			if ("leafWetness" in payload.sensorData && !Number.isNaN(payload.sensorData.leafWetness[i])) {
-				tempArray.push(payload.sensorData.leafWetness[i]);
-				s
-			}
-
-			//Adding rain data
-			if ("rainCollector" in payload.sensorData && !Number.isNaN(payload.sensorData.rainCollector[i])) {
-				tempArray.push(payload.sensorData.rainCollector[i]);
-			} else {
-				tempArray.push(null);
-			}
-
-			let value = await insertDataIntoDb(tempArray);
 		}
 	}
 });
@@ -190,30 +184,6 @@ app.listen(3000, () => {
 
 
 
-//Function opens DB connection quries the db to insert data to sensor table
-/**
- *  Inserts data in to "sensor" table in the DB
- * @param { array } values 
- */
-function insertDataIntoDb(values) {
-	return new Promise( async (resolve, reject) => {
-		const sql = `INSERT INTO measurement (entry_id, node_id, timestamp, temperature, humidity, dew_point, wind_speed, leaf_wetness, rainfall) VALUES (${values[0]}, ${values[1]}, '${values[2]}', ${values[3]}, ${values[4]}, NULL, ${values[6]}, ${values[7]}, ${values[8]})`;
-		console.log(sql);
-
-		try {
-			pool.query(sql).then((res) => {
-				console.log(res);
-			});
-			//console.log(res);
-		} catch (error) {
-			console.log(error);
-			return reject();
-		}
-		return resolve(true);
-	});
-}
-
-
 function sendDownlink(ID) {
 	if(nodeMap.has(ID)) {
 		const downLinkURL = `https://au1.cloud.thethings.network/api/v3/as/applications/${APP_ID}/webhooks/${WEBHOOK_ID}/devices/${DEV_ID}/down/replace`;
@@ -237,11 +207,118 @@ function sendDownlink(ID) {
 			}
 		}).then((res) => {
 			console.log("DOWN LINK DONE");
-			nodeInfo.setLastInterval(nodeInfo.getUpdateInterval());
+			nodeInfo.setLastUpdateInterval(nodeInfo.getUpdateInterval());
 		}).catch((err) => {
 			console.log(err);
 		});
 	} else {
 		console.log("Node is not registered");
 	}
+}
+
+function getDateTime(updateTime) {
+	let date = new Date();
+	date.setSeconds(0);	
+	date.setMilliseconds(0);
+	const minutes = date.getMinutes();
+	let minutesToAdjust = -(minutes % updateTime);
+
+	if((-minutesToAdjust) >= (updateTime / 2)) {
+		minutesToAdjust = (updateTime + minutesToAdjust);
+	}
+
+	date.setMinutes(minutes + minutesToAdjust);
+	return date;
+}
+
+//FUNCTIONS
+//Extracts data from payload and then maps the time to the data in the map
+function extractSensorDataFromPayload(map, payload, name, dateTime, totalTime) {
+	if (name in payload.sensorData) {
+        const count = payload.sensorData[name].length; //Getting the length of the array
+        const collectionInterval = totalTime / count; //Colleciton interval in minutes
+        for (let index = 0; index < count; index++) {
+          const backCount = count - 1 - index; //How many counts backward the time will be
+          const collecitonTime = getBackDate(
+            collectionInterval,
+            dateTime,
+            backCount
+          );
+
+          //Now we want to save the information in a specific time in the insertion map
+          if(map.has(collecitonTime.getTime())) {
+            //We want to append the object with this data
+            const infoObj = map.get(collecitonTime.getTime());
+            if (!(name in infoObj)) {
+              //If there isn't already a temperature
+              infoObj[name] = payload.sensorData[name][index];
+              map.set(collecitonTime.getTime(), infoObj);
+            } else {
+              console.log("BIG ERROR SOMEHOW BUGGGGGGGGGG");
+            }
+          } else {
+            //We want to create a new object to set the value
+            const infoObj = {
+              temperature: payload.sensorData[name][index],
+            };
+            map.set(collecitonTime.getTime(), infoObj);
+          }
+        }
+    }
+}
+
+//Will be given count as (length-1)-index
+function getBackDate(updateTime, date, count) {
+	const countBackTime = count * updateTime;
+
+	const momentDate = moment(date);	
+	const updatedDate = momentDate.subtract(countBackTime, "minutes");
+
+
+	return updatedDate.toDate();
+}
+
+//Sends a query to the database
+//Has no query validation
+function queryDb(query) {
+	return new Promise((res, rej) => {
+		try {
+			pool.query(query).then((result) => {
+				res(true);
+			});
+		} catch (error) {
+			return rej();
+		}
+	});
+}
+
+function mapToQueries(map, nodeId) {
+	let outputQueries = []; //
+	const keyArray = Array.from(map.keys());
+
+	for(let index in keyArray) {
+		const date = new Date(keyArray[index]); //Getting the date and time for the input
+		const data = map.get(keyArray[index]);
+
+		//Adding dew point to data if possible
+		if("temperature" in data && "humidity" in data) {
+			data["dewPoint"] = calculateDewPoint(data["temperature"], data["humidity"]);
+		};
+
+		const tempQuery = `INSERT INTO measurement (entry_id, node_id, timestamp, temperature, humidity, dew_point, wind_speed, leaf_wetness, rainfall) VALUES (1, ${nodeId}, '${date.toISOString()}', ${data["temperature"] ?? "NULL"}, ${data["humidity"] ?? "NULL"}, ${data["dewPoint"] ?? "NULL"}, ${data["windSpeed"] ?? "NULL"}, ${data["leafWetness"] ?? "NULL"}, ${data["rainCollector"] ?? "NULL"}`;
+		outputQueries.push(tempQuery);
+	}
+
+	return outputQueries;	
+}
+
+function calculateDewPoint(temperature, relativeHumidity) {
+  const a = 17.625;
+  const b = 243.04;
+  const lnRH = Math.log(relativeHumidity / 100);
+  const term1 = (a * temperature) / (b + temperature);
+  const term2 = lnRH + term1;
+  const dewPoint = (b * term2) / (a - term2);
+
+  return dewPoint.toFixed(2); // Round to two decimal places
 }
