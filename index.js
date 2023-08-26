@@ -78,8 +78,9 @@ app.post("/", async (req, res) => {
 				res();
 			}));
 			
-			if(queryMap.keys().length > 0) {
-				const queries = mapToQueries(queryDb, deviceId);
+			console.log(queryMap);
+			if(queryMap.size > 0) {
+				const queries = mapToQueries(queryMap, deviceId);
 				for(let index in queries) {
 					try {
 						const result = queryDb(queries[index]);
@@ -236,6 +237,7 @@ function getDateTime(updateTime) {
 function extractSensorDataFromPayload(map, payload, name, dateTime, totalTime) {
 	if (name in payload.sensorData) {
         const count = payload.sensorData[name].length; //Getting the length of the array
+		console.log(name + " : " + count);
         const collectionInterval = totalTime / count; //Colleciton interval in minutes
         for (let index = 0; index < count; index++) {
           const backCount = count - 1 - index; //How many counts backward the time will be
@@ -305,7 +307,7 @@ function mapToQueries(map, nodeId) {
 			data["dewPoint"] = calculateDewPoint(data["temperature"], data["humidity"]);
 		};
 
-		const tempQuery = `INSERT INTO measurement (entry_id, node_id, timestamp, temperature, humidity, dew_point, wind_speed, leaf_wetness, rainfall) VALUES (1, ${nodeId}, '${date.toISOString()}', ${data["temperature"] ?? "NULL"}, ${data["humidity"] ?? "NULL"}, ${data["dewPoint"] ?? "NULL"}, ${data["windSpeed"] ?? "NULL"}, ${data["leafWetness"] ?? "NULL"}, ${data["rainCollector"] ?? "NULL"}`;
+		const tempQuery = `INSERT INTO measurement (entry_id, node_id, timestamp, temperature, humidity, dew_point, wind_speed, leaf_wetness, rainfall) VALUES (1, '${nodeId}', '${date.toISOString()}', ${data["temperature"] ?? "NULL"}, ${data["humidity"] ?? "NULL"}, ${data["dewPoint"] ?? "NULL"}, ${data["windSpeed"] ?? "NULL"}, ${data["leafWetness"] ?? "NULL"}, ${data["rainCollector"] ?? "NULL"})`;
 		outputQueries.push(tempQuery);
 	}
 
