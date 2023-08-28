@@ -72,10 +72,11 @@ class Node {
     }
 
     #calculateDelay() {
-        const nowDate = new Date().getTime();
-        console.log("Now = " + nowDate.toDate());
+        const currentDate = new Date();
+        const nowDate = currentDate.getTime();
+        console.log("Now = " + currentDate);
         const futureDate = this.#getForwardDate(this.state.getUpdateInterval()).getTime();
-        console.log("Future = " + futureDate.toDate());
+        console.log("Future = " + new Date(futureDate));
 
         const differenceInMilliseconds = futureDate - nowDate;
         const differenceMinuteFactor = 1000 * 60; 
