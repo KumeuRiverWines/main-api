@@ -301,6 +301,8 @@ function queryDb(query) {
 		try {
 			pool.query(query).then((result) => {
 				res(true);
+			}).catch((error) => {
+				console.log(error);
 			});
 		} catch (error) {
 			console.log("ERR HERE =" + error.message);
