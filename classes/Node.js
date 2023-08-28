@@ -83,7 +83,14 @@ class Node {
         const differenceInMilliseconds = futureDate - nowDate;
         const differenceMinuteFactor = 1000 * 60; 
 
-        return Math.floor((differenceInMilliseconds /differenceMinuteFactor));
+        const difference = Math.floor((differenceInMilliseconds /differenceMinuteFactor)) - this.state.getUpdateInterval();
+
+        console.log("Difference = " + difference);
+        if(difference > 1) {
+            return difference;
+        }  else {
+            return 0;
+        }
     }
 
     #getForwardDate(updateTime, date) {
