@@ -74,7 +74,7 @@ class State {
 
     #setUpdateBytes() {
         //Looks at sensorState array and updateInterval and create a updateBytes 
-        const tempBytes = [];
+        const tempBytes = [0];
   
         //Getting the packet type
 		let packetType = 0;

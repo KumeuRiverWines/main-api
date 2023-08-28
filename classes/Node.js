@@ -23,7 +23,7 @@ class Node {
         const delay = this.#calculateDelay();
         console.log("Delay = " + delay);
         const tempPaylod = this.state.getUpdateBytes();
-        tempPaylod.unshift(delay);
+        tempPaylod[0] =delay;
         console.log("Payload = " + tempPaylod);
         return tempPaylod;
     }
