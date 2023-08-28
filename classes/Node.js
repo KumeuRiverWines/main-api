@@ -89,7 +89,7 @@ class Node {
         if(difference > 1) {
             return difference % this.state.getUpdateInterval();
         }  else {
-            return 0;
+            return 1;
         }
     }
 
