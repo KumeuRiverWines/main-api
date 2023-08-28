@@ -22,11 +22,11 @@ class State {
     }
 
     getLastUpdateInterval() {
-
+        return this.lastInterval;
     }
 
-    updateLastInterval() {
-         
+    updateLastInterval(update) {
+        this.lastInterval  = update;
     }
 
     setSensorState(state) {
@@ -64,7 +64,7 @@ class State {
         }
         
         //Setting last interval if not set
-        if(this.lastInterval === null) {
+        if(this.lastInterval === -1) {
             this.lastInterval = this.updateInterval;
         }
 
@@ -109,6 +109,13 @@ class State {
 
         this.updateBytes = tempBytes; 
         console.log(this.updateBytes);
+    }
+
+    toObj() {
+        return ({
+            mode: this.mode,
+            nextDownlinkTime: this.updateInterval,
+        });
     }
 }
 

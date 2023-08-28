@@ -11,6 +11,7 @@ class Node {
         this.state = null;
         this.lastSeen = null;
         this.updatePayload = [];
+        this.lastUpdateInterval = 15; 
 
         this.updateState(state);
     }
@@ -24,15 +25,15 @@ class Node {
     }
 
     getUpdateInterval() {
-        this.state.getUpdateInterval();
+        return this.state.getUpdateInterval();
     }
 
     getLastUpdateInterval() {
-        this.state.getLastUpdateInterval(); 
+        return this.lastUpdateInterval;
     }
 
     setLastUpdateInterval(interval) {
-        this.state.updateLastInterval(interval);
+        this.lastUpdateInterval = interval;
     }
 
     getId() {
@@ -65,7 +66,7 @@ class Node {
 
     //Takes in string of state
     updateState(state) {
-        this.state = new State(state);
+        this.state = new State(state );
         return this.state;
     }
 
@@ -85,6 +86,16 @@ class Node {
         }
 
         return timeDelay % 255; 
+    }
+
+    toObj() {
+        return ({
+            id: this.id,
+            location: this.location,
+            lastSeen: this.lastSeen,
+            lastUpdateInterval: this.lastUpdateInterval,
+            state: this.getState().toObj()
+        });
     }
 }
 

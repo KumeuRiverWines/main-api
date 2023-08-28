@@ -146,7 +146,7 @@ app.post("/api/node/update", (req, res) => {
 
 	if("id" in body) {
 		if(nodeMap.has(body.id)) {
-			const node = nodeMap.get(id);
+			const node = nodeMap.get(body.id);
 			if("mode" in body) {
 				node.updateState(body.mode);
 				return (res.send({
@@ -172,10 +172,25 @@ app.post("/api/node/update", (req, res) => {
 	}
 });
 
+
+
 app.get("/api/node/mode", (req,res) => {
-	res.send({
-		mode: currentMode,
-	});
+	if("id" in req.query) {
+		if(nodeMap.has(req.query.id)) {
+			const node = nodeMap.get(req.query.id);
+			res.send({
+				info: node.toObj()
+			});
+		} else {
+			res.send({
+				error:"Node doesn't exist"
+			});
+		}
+	} else {
+		res.send({
+			error: "Invalid"
+		});
+	}
 });
 
 
@@ -208,7 +223,7 @@ function sendDownlink(ID) {
 			}
 		}).then((res) => {
 			console.log("DOWN LINK DONE");
-			nodeInfo.setLastUpdateInterval(nodeInfo.getUpdateInterval());
+			nodeInfo.setLastUpdateInterval(payload[payload.length-1]); //Gets the last value in the array as the new last update time
 		}).catch((err) => {
 			console.log(err);
 		});
