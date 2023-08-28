@@ -24,6 +24,7 @@ class Node {
         console.log("Delay = " + delay);
         const tempPaylod = this.state.getUpdateBytes();
         tempPaylod.unshift(delay);
+        console.log("Payload = " + tempPaylod);
         return tempPaylod;
     }
 
