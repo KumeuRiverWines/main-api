@@ -86,6 +86,7 @@ app.post("/", async (req, res) => {
 						console.log(queries[index]);
 					} catch(err) {
 						console.log(err);
+						continue;
 					}
 				}
 			}
