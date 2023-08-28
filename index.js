@@ -42,8 +42,6 @@ const WEBHOOK_ID = "api";
 
 app.post("/", async (req, res) => {
 	res.send().status(200); //Documentation says we should send res ASAP
-	const totalTime = lastIntervalTime; //Time since the node started collecting data
-	const dateTime = getDateTime(totalTime); //Time stamp for input
 
 	if(!"end_device_ids" in req.body) {
 		if(!"device_id" in req.body.end_device_ids) {
@@ -57,36 +55,40 @@ app.post("/", async (req, res) => {
 		const newNode = new Node(deviceId, "Not Set", "Standard");
 		nodeMap.set(deviceId, newNode);
 	}
-	sendDownlink(deviceId);
 
 	//NOW TO TYPE IS ALL OUT LEGIT
 	if ("uplink_message" in req.body) {
 		if ("decoded_payload" in req.body.uplink_message) {
 			let payload = req.body.uplink_message.decoded_payload;
-			const queryMap = new Map(); //Maps a date and time to a json object that has all the information for the sql query
+			if("totalTime" in payload) {
+				const totalTime = payload.totalTime; //Time since the node started collecting data
+				const dateTime = getDateTime(totalTime); //Time stamp for input
 
-			const results = await (new Promise((res) => {
-				//temperature
-				const sensors = ["temperature", "humidity", "leafWetness", "rainCollector", "windDirection", "windSpeed"];
+				const queryMap = new Map(); //Maps a date and time to a json object that has all the information for the sql query
 
-				for (let index in sensors) {
-					if (sensors[index] in payload.sensorData) {
-						extractSensorDataFromPayload(queryMap, payload, sensors[index], dateTime, totalTime);
+				const results = await (new Promise((res) => {
+					//temperature
+					const sensors = ["temperature", "humidity", "leafWetness", "rainCollector", "windDirection", "windSpeed"];
+
+					for (let index in sensors) {
+						if (sensors[index] in payload.sensorData) {
+							extractSensorDataFromPayload(queryMap, payload, sensors[index], dateTime, totalTime);
+						}
 					}
-				}
-				res();
-			}));
-			
-			if(queryMap.size > 0) {
-				const queries = mapToQueries(queryMap, deviceId);
-				console.log("Insert quries");
-				for(let index in queries) {
-					try {
-						const result = queryDb(queries[index]);
-						console.log(queries[index]);
-					} catch(err) {
-						console.log("ERR HERE");
-						console.log(err);
+					res();
+				}));
+				
+				if(queryMap.size > 0) {
+					const queries = mapToQueries(queryMap, deviceId);
+					console.log("Insert quries");
+					for(let index in queries) {
+						try {
+							//const result = queryDb(queries[index]);
+							console.log(queries[index]);
+						} catch(err) {
+							console.log("ERR HERE");
+							console.log(err);
+						}
 					}
 				}
 			}
@@ -139,19 +141,27 @@ app.get("/api/data/all/temp", async (req, res) => {
  *  "mode": "{mode}"
  * }
  */
-app.post("/api/node/update", (req, res) => {
-	let updated = false;
+app.post("/api/node/update", async (req, res) => {
 	console.log(req.body);
 	const body = req.body;
+	console.log(nodeMap);
 
 	if("id" in body) {
 		if(nodeMap.has(body.id)) {
 			const node = nodeMap.get(body.id);
 			if("mode" in body) {
-				node.updateState(body.mode);
-				return (res.send({
-					updated: true
-				}));	
+				
+				sendDownlink(body.id).then(() => {
+					node.updateState(body.mode);
+					return res.send({
+						updated: true
+					});
+				}).catch((result) => {
+					return res.send({
+						updated: false,
+						error: result
+					});
+				});
 			} else {
 				return (res.send({
 					updated: false,
@@ -201,35 +211,40 @@ app.listen(3000, () => {
 
 
 function sendDownlink(ID) {
-	if(nodeMap.has(ID)) {
-		const downLinkURL = `https://au1.cloud.thethings.network/api/v3/as/applications/${APP_ID}/webhooks/${WEBHOOK_ID}/devices/${DEV_ID}/down/replace`;
-		const nodeInfo = nodeMap.get(ID);
+	return (new Promise((res, rej) => {
+		if(nodeMap.has(ID)) {
+			const downLinkURL = `https://au1.cloud.thethings.network/api/v3/as/applications/${APP_ID}/webhooks/${WEBHOOK_ID}/devices/${DEV_ID}/down/replace`;
+			const nodeInfo = nodeMap.get(ID);
 
-		//TEMP PART CREATING FAKE PAYLOAD
-		const payload = nodeInfo.getUpdateBytes();
-		console.log(payload);	
+			//TEMP PART CREATING FAKE PAYLOAD
+			const payload = nodeInfo.getUpdateBytes();
+			console.log(payload);	
 
-		axios({
-			method: 'post',
-			url: downLinkURL,
-			headers: { Authorization: `Bearer ${API_KEY}` },
-			data: {
-				downlinks: [{
-					f_port: 1,
-					decoded_payload: {
-						bytes: payload
-					}
-				}]
-			}
-		}).then((res) => {
-			console.log("DOWN LINK DONE");
-			nodeInfo.setLastUpdateInterval(payload[payload.length-1]); //Gets the last value in the array as the new last update time
-		}).catch((err) => {
-			console.log(err);
-		});
-	} else {
-		console.log("Node is not registered");
-	}
+			axios({
+				method: 'post',
+				url: downLinkURL,
+				headers: { Authorization: `Bearer ${API_KEY}` },
+				data: {
+					downlinks: [{
+						f_port: 1,
+						decoded_payload: {
+							bytes: payload
+						}
+					}]
+				}
+			}).then((result) => {
+				console.log("DOWN LINK DONE");
+				nodeInfo.setLastUpdateInterval(payload[payload.length-1]); //Gets the last value in the array as the new last update time
+				return res("Node updated");
+			}).catch((err) => {
+				console.log(err);
+				return rej("Error updating with the things network");
+			});
+		} else {
+			console.log("Node is not registered");
+			return rej("Invalid ID");
+		}
+	}));
 }
 
 function getDateTime(updateTime) {
