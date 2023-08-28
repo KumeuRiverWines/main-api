@@ -227,6 +227,8 @@ function sendDownlink(ID) {
 		}).catch((err) => {
 			console.log(err);
 		});
+
+		nodeInfo.getUpdateBytes.shift();//Shifiting delay index off
 	} else {
 		console.log("Node is not registered");
 	}
