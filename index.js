@@ -65,7 +65,6 @@ app.post("/", async (req, res) => {
 			let payload = req.body.uplink_message.decoded_payload;
 			const queryMap = new Map(); //Maps a date and time to a json object that has all the information for the sql query
 
-			console.log("HERE");
 			const results = await (new Promise((res) => {
 				//temperature
 				const sensors = ["temperature", "humidity", "leafWetness", "rainCollector", "windDirection", "windSpeed"];
@@ -78,9 +77,9 @@ app.post("/", async (req, res) => {
 				res();
 			}));
 			
-			console.log(queryMap);
 			if(queryMap.size > 0) {
 				const queries = mapToQueries(queryMap, deviceId);
+				console.log("Insert quries");
 				for(let index in queries) {
 					try {
 						const result = queryDb(queries[index]);
@@ -252,7 +251,6 @@ function getDateTime(updateTime) {
 function extractSensorDataFromPayload(map, payload, name, dateTime, totalTime) {
 	if (name in payload.sensorData) {
         const count = payload.sensorData[name].length; //Getting the length of the array
-		console.log(name + " : " + count);
         const collectionInterval = totalTime / count; //Colleciton interval in minutes
         for (let index = 0; index < count; index++) {
           const backCount = count - 1 - index; //How many counts backward the time will be

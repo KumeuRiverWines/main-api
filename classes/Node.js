@@ -19,6 +19,7 @@ class Node {
     //Methods
     getUpdateBytes() {
         const delay = this.#calculateDelay();
+        console.log("Delay = " + delay);
         const tempPaylod = this.state.getUpdateBytes();
         tempPaylod.unshift(delay);
         return tempPaylod;
@@ -71,22 +72,26 @@ class Node {
     }
 
     #calculateDelay() {
-        let timeDelay = 0;
-        const date = new Date();
-        const intervalTime = this.state.getUpdateInterval();
+        const nowDate = new Date().getTime();
+        console.log("Now = " + nowDate.toDate());
+        const futureDate = this.#getForwardDate(this.state.getUpdateInterval()).getTime();
+        console.log("Future = " + futureDate.toDate());
 
-        const currentTimeMinute = new Date().getMinutes();
-        if(date.getSeconds >= 30) {
-            currentTimeMinute++; //Rounding down a minute
-        }
+        const differenceInMilliseconds = futureDate - nowDate;
+        const differenceMinuteFactor = 1000 * 60; 
 
-        let offset = currentTimeMinute % intervalTime;
-        if (1 < offset && offset < (intervalTime - 1)) {
-            timeDelay = intervalTime - offset;
-        }
-
-        return timeDelay % 255; 
+        return Math.floor((differenceInMilliseconds /differenceMinuteFactor));
     }
+
+    #getForwardDate(updateTime, date) {
+        const countBackTime = updateTime;
+
+        const momentDate = moment(date);	
+        const updatedDate = momentDate.add(countBackTime, "minutes");
+
+
+        return updatedDate.toDate();
+    }   
 
     toObj() {
         return ({

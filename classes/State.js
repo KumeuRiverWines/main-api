@@ -111,6 +111,8 @@ class State {
         console.log(this.updateBytes);
     }
 
+
+
     toObj() {
         return ({
             mode: this.mode,
