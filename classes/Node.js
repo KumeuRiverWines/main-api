@@ -87,7 +87,7 @@ class Node {
 
         console.log("Difference = " + difference);
         if(difference > 1) {
-            return difference;
+            return difference % this.state.getUpdateInterval();
         }  else {
             return 0;
         }

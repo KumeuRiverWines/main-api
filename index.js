@@ -85,8 +85,8 @@ app.post("/", async (req, res) => {
 						const result = queryDb(queries[index]);
 						console.log(queries[index]);
 					} catch(err) {
+						console.log("ERR HERE");
 						console.log(err);
-						continue;
 					}
 				}
 			}
@@ -303,6 +303,7 @@ function queryDb(query) {
 				res(true);
 			});
 		} catch (error) {
+			console.log("ERR HERE =" + error.message);
 			return rej();
 		}
 	});
