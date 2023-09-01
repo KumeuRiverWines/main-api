@@ -23,7 +23,7 @@ class Node {
         const delay = this.#calculateDelay();
         console.log("Delay = " + delay);
         const tempPaylod = this.state.getUpdateBytes();
-        tempPaylod[0] =delay;
+        tempPaylod[0] =1;
         console.log("Payload = " + tempPaylod);
         return tempPaylod;
     }
@@ -90,7 +90,7 @@ class Node {
         if(difference > 1) {
             return difference % this.state.getUpdateInterval();
         }  else {
-            return 1;
+            return 0;
         }
     }
 

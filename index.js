@@ -62,7 +62,9 @@ app.post("/", async (req, res) => {
 			let payload = req.body.uplink_message.decoded_payload;
 			if("totalTime" in payload) {
 				const totalTime = payload.totalTime; //Time since the node started collecting data
-				const dateTime = getDateTime(totalTime); //Time stamp for input
+				let dateTime = getDateTime(totalTime); //Time stamp for input
+				console.log("Date == " + dateTime);
+
 
 				const queryMap = new Map(); //Maps a date and time to a json object that has all the information for the sql query
 
@@ -83,7 +85,7 @@ app.post("/", async (req, res) => {
 					console.log("Insert quries");
 					for(let index in queries) {
 						try {
-							//const result = queryDb(queries[index]);
+							const result = queryDb(queries[index]);
 							console.log(queries[index]);
 						} catch(err) {
 							console.log("ERR HERE");
@@ -122,8 +124,28 @@ app.get("/api/data/all", async (req, res) => {
     }
 });
 
+app.get("/api/data/node/", async(req,res) => {
+	const params = req.query;	
+	if("count" in params && "id" in params) {
+		const sql = `SELECT * FROM measurement WHERE node_id='${params.id}' ORDER BY timestamp DESC LIMIT ${params.count}`;
+
+		try {
+			const results = await queryDb(sql);
+			res.send(results.rows);
+		} catch(err) {
+			res.send({
+				error: "ERROR WITH DB"
+			});
+		}
+	} else {
+		res.send({
+			error: "Invalid params"
+		});
+	}
+});
+
 app.get("/api/data/all/temp", async (req, res) => {
-	const sql = "SELECT node_id, temperature, timestamp FROM measurement WHERE timestamp >= NOW() - INTERVAL '10 days' ORDER BY timestamp DESC;";
+	const sql = "SELECT node_id, temperature, timestamp FROM measurement WHERE timestamp >= NOW() - INTERVAL '10 days' ORDER BY timestamp DESC";
 
 	try {
 		const response = await pool.query(sql);
@@ -131,6 +153,17 @@ app.get("/api/data/all/temp", async (req, res) => {
 	} catch (error) {
 		console.log(error);
 	}
+});
+
+app.get("/api/data/all/allforecast", async (req, res) => {
+	const sql = "Select * FROM forecast";
+
+	try {
+                const response = await pool.query(sql);
+                res.send(response.rows);
+        } catch (error) {
+                console.log(error);
+        }
 });
 
 //END POINTS FOR DOWNLINK UPDATES TO NODE
@@ -152,6 +185,7 @@ app.post("/api/node/update", async (req, res) => {
 			if("mode" in body) {
 				
 				sendDownlink(body.id).then(() => {
+					console.log("Updated");
 					node.updateState(body.mode);
 					return res.send({
 						updated: true
@@ -315,7 +349,8 @@ function queryDb(query) {
 	return new Promise((res, rej) => {
 		try {
 			pool.query(query).then((result) => {
-				res(true);
+				console.log(result);
+				res(result);
 			}).catch((err) => {
 				console.log(err);	
 			});
