@@ -16,13 +16,17 @@ const API_KEY = "NNSXS.QOGRSXIHHVKXIWKMPW65S2X2XU3RHXB2LASVKEI.BYZCKGTG3KRWPDURS
 //Postgresql Package
 const Pool = require("pg").Pool;
 //PASSWORD IS PLAIN TEXT MAKE A .ENV FILE PLZ
-
 const pool = new Pool({
     user: "kumeu",
     host: "192.168.1.2",
     database: "kumeudb",
     password: "QV8nXb2t5B",
     port: "5432"
+});
+
+//Connection event will pull the node information
+pool.on("connect", () => {
+	pullNodeInformaiton();	
 });
 
 //Node map "Maps nodeId -> nodeObj"
@@ -36,7 +40,7 @@ let currentMode = "Standard";
 
 //Down link variables
 const APP_ID = "kuemu-river-wines-app"; 
-const DEV_ID = "eui-70b3d57ed005de54";
+//const DEV_ID = "eui-70b3d57ed005de54";
 const WEBHOOK_ID = "api";
 
 
@@ -54,6 +58,7 @@ app.post("/", async (req, res) => {
 	if (!nodeMap.has(deviceId)) {
 		const newNode = new Node(deviceId, "Not Set", "Standard");
 		nodeMap.set(deviceId, newNode);
+		addNode(deviceId); //INSERTING INTO DB
 	}
 
 	//NOW TO TYPE IS ALL OUT LEGIT
@@ -175,9 +180,7 @@ app.get("/api/data/all/allforecast", async (req, res) => {
  * }
  */
 app.post("/api/node/update", async (req, res) => {
-	console.log(req.body);
 	const body = req.body;
-	console.log(nodeMap);
 
 	if("id" in body) {
 		if(nodeMap.has(body.id)) {
@@ -247,12 +250,11 @@ app.listen(3000, () => {
 function sendDownlink(ID) {
 	return (new Promise((res, rej) => {
 		if(nodeMap.has(ID)) {
-			const downLinkURL = `https://au1.cloud.thethings.network/api/v3/as/applications/${APP_ID}/webhooks/${WEBHOOK_ID}/devices/${DEV_ID}/down/replace`;
+			const downLinkURL = `https://au1.cloud.thethings.network/api/v3/as/applications/${APP_ID}/webhooks/${WEBHOOK_ID}/devices/${ID}/down/replace`;
 			const nodeInfo = nodeMap.get(ID);
 
 			//TEMP PART CREATING FAKE PAYLOAD
 			const payload = nodeInfo.getUpdateBytes();
-			console.log(payload);	
 
 			axios({
 				method: 'post',
@@ -315,6 +317,8 @@ function extractSensorDataFromPayload(map, payload, name, dateTime, totalTime) {
           if(map.has(collecitonTime.getTime())) {
             //We want to append the object with this data
             const infoObj = map.get(collecitonTime.getTime());
+			console.log("info obj");
+			console.log(infoObj);
             if (!(name in infoObj)) {
               //If there isn't already a temperature
               infoObj[name] = payload.sensorData[name][index];
@@ -340,7 +344,6 @@ function getBackDate(updateTime, date, count) {
 	const momentDate = moment(date);	
 	const updatedDate = momentDate.subtract(countBackTime, "minutes");
 
-
 	return updatedDate.toDate();
 }
 
@@ -350,7 +353,6 @@ function queryDb(query) {
 	return new Promise((res, rej) => {
 		try {
 			pool.query(query).then((result) => {
-				console.log(result);
 				res(result);
 			}).catch((err) => {
 				console.log(err);	
@@ -367,7 +369,6 @@ function mapToQueries(map, nodeId) {
 	const keyArray = Array.from(map.keys());
 
 	for(let index in keyArray) {
-		console.log(keyArray[index]);
 		const date = new Date(keyArray[index]); //Getting the date and time for the input
 		const data = map.get(keyArray[index]);
 
@@ -392,4 +393,48 @@ function calculateDewPoint(temperature, relativeHumidity) {
   const dewPoint = (b * term2) / (a - term2);
 
   return dewPoint.toFixed(2); // Round to two decimal places
+}
+
+
+/**
+ * Add node to table
+ * 
+ * This function can happen in background 
+ */
+function addNode(ID) {
+	const currentTime = new Date().toISOString();
+	const insertQuery = `INSERT INTO nodes (ID, name, lastSeen) VALUES ('${ID}', '${ID}', '${currentTime}')`;
+
+	try {
+		const result = queryDb(insertQuery);
+	} catch(err) {
+		console.log("Error inserting node");
+		console.log(err);
+	}
+}
+
+/**
+ * Funciton for updating the nodes table in the db with node information
+ */
+async function pullNodeInformaiton() {
+	console.log("Pulling node information");
+	const selectQuery = `SELECT * FROM nodes`;
+
+	try {
+		const result = await queryDb(selectQuery);
+		const rows = result.rows;
+			
+		console.log("PULLED NODE INFO");
+		console.log(rows);
+
+		//Now we want to loop throught the rows insrting into the map
+		for(let index in rows) {
+			if("ID" in rows) {
+				nodeMap.set(rows.ID, new Node(rows.ID, "n/a", "Standard"));
+			}
+		}
+	} catch(err) {
+		console.log("Error grabbing information");
+		console.log(err);
+	}
 }
