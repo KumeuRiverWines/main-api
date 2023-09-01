@@ -258,8 +258,9 @@ function getDateTime(updateTime) {
 		minutesToAdjust = (updateTime + minutesToAdjust);
 	}
 
-	date.setMinutes(minutes + minutesToAdjust);
-	return date;
+	//Updating the minutes	
+	const newDate = new Date(date.getTime() + (minutesToAdjust * 60000));
+	return newDate;
 }
 
 //FUNCTIONS
@@ -331,6 +332,7 @@ function mapToQueries(map, nodeId) {
 	const keyArray = Array.from(map.keys());
 
 	for(let index in keyArray) {
+		console.log(keyArray[index]);
 		const date = new Date(keyArray[index]); //Getting the date and time for the input
 		const data = map.get(keyArray[index]);
 
