@@ -31,7 +31,7 @@ echo "new version = $newNum"
 
 
 echo Building the new container
-docker build . -t "kumeuapi:v${newNum}"
+docker build ./docker -t "kumeuapi:v${newNum}"
 
 #need to sleep to let container die
 sleep 5

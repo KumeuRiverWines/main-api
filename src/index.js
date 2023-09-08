@@ -1,5 +1,5 @@
 //Importing classes
-const Node = require("./classes/Node");
+const Node = require("../classes/Node");
 
 //Express Package
 const express = require("express");
