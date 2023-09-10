@@ -8,7 +8,7 @@ const router = express.Router();
  */
 
 //Node data
-router.get("/:id/:sensor")
+router.get("/:id/:sensor", returnNotImplemented);
 
 
 function returnNotImplemented(req, res) { 
