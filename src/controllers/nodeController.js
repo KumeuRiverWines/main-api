@@ -3,6 +3,10 @@
  */
 //Imports
 const Node = require("../classes/Node");
+const dateModel = require("../models/dateModel");
+const uplinkPayloadService = require("../services/uplinkPayloadService");
+const databaseModel = require("../models/databaseModel");
+const nodeModel = require("../models/nodeModel");
 
 //Axios setup
 const axios = require("axios");
@@ -24,10 +28,11 @@ async function handleUplinkRoute(req, res) {
 	}	
 
 	const deviceId = req.body.end_device_ids.device_id;
-	if (!nodeMap.has(deviceId)) {
-		const newNode = new Node(deviceId, "Not Set", "Standard");
-		nodeMap.set(deviceId, newNode);
-		addNode(deviceId); //INSERTING INTO DB
+	const node = nodeModel.getNode(deviceId);
+	if (!node) {
+		if(nodeModel.createNode(deviceId)) {
+			nodeModel.addNode(deviceId);
+		}
 	}
 
 	//NOW TO TYPE IS ALL OUT LEGIT
@@ -36,30 +41,27 @@ async function handleUplinkRoute(req, res) {
 			let payload = req.body.uplink_message.decoded_payload;
 			if("totalTime" in payload) {
 				const totalTime = payload.totalTime; //Time since the node started collecting data
-				let dateTime = getDateTime(totalTime); //Time stamp for input
-				console.log("Date == " + dateTime);
-
+				let dateTime = dateModel.getClosestCollectionDateTime(totalTime); //Time stamp for input
 
 				const queryMap = new Map(); //Maps a date and time to a json object that has all the information for the sql query
 
 				const results = await (new Promise((res) => {
-					//temperature
 					const sensors = ["temperature", "humidity", "leafWetness", "rainCollector", "windDirection", "windSpeed"];
 
 					for (let index in sensors) {
 						if (sensors[index] in payload.sensorData) {
-							extractSensorDataFromPayload(queryMap, payload, sensors[index], dateTime, totalTime);
+							uplinkPayloadService.extractSensorDataFromPayload(queryMap, payload, sensors[index], dateTime, totalTime);
 						}
 					}
 					res();
 				}));
 				
 				if(queryMap.size > 0) {
-					const queries = mapToQueries(queryMap, deviceId);
+					const queries = uplinkPayloadService.mapToQueries(queryMap, deviceId);
 					console.log("Insert quries");
 					for(let index in queries) {
 						try {
-							const result = queryDb(queries[index]);
+							const result = databaseModel.queryDb(queries[index]);
 							console.log(queries[index]);
 						} catch(err) {
 							console.log("ERR HERE");
@@ -85,7 +87,7 @@ async function sendDownlink(id) {
     return (new Promise((res, rej) => {
 		if(nodeMap.has(id)) {
 			const downLinkURL = `https://au1.cloud.thethings.network/api/v3/as/applications/${APP_ID}/webhooks/${WEBHOOK_ID}/devices/${id}/down/replace`;
-			const nodeInfo = nodeMap.get(id);
+			const nodeInfo = nodeModel.getNodeFromId(id);
 
 			//TEMP PART CREATING FAKE PAYLOAD
 			const payload = nodeInfo.getUpdateBytes();
@@ -120,8 +122,8 @@ async function sendDownlink(id) {
 
 async function handleGetNodeModeRoute(req,res) {
 	if("id" in req.query) {
-		if(nodeMap.has(req.query.id)) {
-			const node = nodeMap.get(req.query.id);
+		const node = nodeModel.getNodeFromId(req.query.id);
+		if(node) {
 			res.send({
 				info: node.toObj()
 			});
@@ -148,8 +150,8 @@ async function handleUpdateNodeRoute(req, res) {
 	const body = req.body;
 
 	if("id" in body) {
-		if(nodeMap.has(body.id)) {
-			const node = nodeMap.get(body.id);
+		const node = nodeModel.getNodeFromId(body.id);
+		if(node) {
 			if("mode" in body) {
 				
 				sendDownlink(body.id).then(() => {

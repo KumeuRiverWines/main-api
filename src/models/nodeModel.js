@@ -29,7 +29,7 @@ const createNode = (id) => {
     if(nodeMap.contains(id)) {
         return false; //already exists
     } else {
-        nodeMap.set(id, {}); //Mapping id -> nodeObj
+        nodeMap.set(id, new Node(id, "Not Set", "Standard")); //Mapping id -> nodeObj
         return true;
     }
 };
@@ -79,3 +79,10 @@ async function pullNodeInformaiton() {
 	}
 }
 
+//Exports
+module.exports = {
+	getNodeFromId,
+	createNode,
+	addNode,
+	pullNodeInformaiton
+};

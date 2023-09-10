@@ -11,7 +11,7 @@ const router = express.Router();
  * Get node information
  * Request param "id" = id of node
  */
-router.get("/:id/", returnNotImplemented);
+router.get("/:id/info", returnNotImplemented);
 
 /**
  * Get node data for specific sensors 

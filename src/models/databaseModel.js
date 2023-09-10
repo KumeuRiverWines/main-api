@@ -44,5 +44,5 @@ function queryDb(query) {
 
 
 module.exports = {
-    pool
+	queryDb
 };
