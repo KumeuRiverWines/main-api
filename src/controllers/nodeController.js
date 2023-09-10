@@ -2,7 +2,6 @@
  * Node controller handles requests coming from the nodeRoutes file
  */
 //Imports
-const Node = require("../classes/Node");
 const dateModel = require("../models/dateModel");
 const uplinkPayloadService = require("../services/uplinkPayloadService");
 const databaseModel = require("../models/databaseModel");
@@ -10,9 +9,12 @@ const nodeModel = require("../models/nodeModel");
 
 //Axios setup
 const axios = require("axios");
-const API_KEY = "NNSXS.QOGRSXIHHVKXIWKMPW65S2X2XU3RHXB2LASVKEI.BYZCKGTG3KRWPDURS3NXKNO4WWYRBNGYKDFPB3YV4M6JN2YKTBKA";
-const APP_ID = "kuemu-river-wines-app"; 
-const WEBHOOK_ID = "api";
+
+const configuration = require("../config/configuration.json");
+const API_KEY = configuration.thethingsnetwork.downlink.API_KEY;
+const APP_ID = configuration.thethingsnetwork.downlink.APP_ID;
+const WEBHOOK_ID = configuration.thethingsnetwork.downlink.WEBHOOK_ID;
+
 
 /**
  *  Handles a uplink message from the things stack 
