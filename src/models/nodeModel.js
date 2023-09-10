@@ -3,7 +3,7 @@
  */
 
 //Imports
-import Node from "../classes/Node";
+const Node = require("../classes/Node");
 
 //Singleton of the node information map
 /**
@@ -18,7 +18,7 @@ const nodeMap = new Map();
  * @returns node Object || NULL
  */
 const getNodeFromId = (id) => {
-    if(nodeMap.contains(id)) {
+    if(nodeMap.has(id)) {
         return nodeMap.get(id);
     } else {
         return null;
@@ -26,7 +26,7 @@ const getNodeFromId = (id) => {
 };
 
 const createNode = (id) => {
-    if(nodeMap.contains(id)) {
+    if(nodeMap.has(id)) {
         return false; //already exists
     } else {
         nodeMap.set(id, new Node(id, "Not Set", "Standard")); //Mapping id -> nodeObj

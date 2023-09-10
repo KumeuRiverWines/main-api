@@ -1,3 +1,8 @@
+//Importing modesl
+const nodeModel = require("../models/nodeModel");
+const databaseModel = require("../models/databaseModel");
+const nodeDataModel = require("../models/nodeDataModel");
+
 async function getAllNodeData(req, res) {
 	let count = 10; //Default count is 10
 	//Getting request parameters
@@ -55,10 +60,40 @@ async function getNodeTemperature(req, res) {
 	}
 }
 
+async function getNodeLastReading(req, res) {
+	const id = req.params.id;
+	
+	if(id) {
+		const node = nodeModel.getNodeFromId(id);
+		if(node) {
+			const lastReadingObj = await nodeDataModel.getLastNodeReading(body.id);
+
+			if(lastReadingObj) {
+				res.send({
+					lastReadingObj
+				});
+			} else {
+				res.send({
+					message: "Not entry found"
+				});
+			}
+		} else {
+			res.send({
+				message: "Node doesn't exist"
+			});
+		}
+	} else {
+		res.send({
+			message: "Invalid params"
+		});
+	}
+}
+
 
 
 module.exports = {
     getAllNodeData,
     getNodeTemperature,
-    getNodeDate
+    getNodeDate,
+	getNodeLastReading
 };
