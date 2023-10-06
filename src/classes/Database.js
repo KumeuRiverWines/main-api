@@ -13,26 +13,45 @@ class Database {
   }
 
   openConnecton() {
-    this.connection = new Client({
-      user: config.user,
-      host: config.host,
-      database: config.database,
-      password: config.password,
-      port: config.port
-    });
+    return new Promise((res, rej) => {
+        if(!this.connectionOpen) {
+          this.connection = new Client({
+            user: config.user,
+            host: config.host,
+            database: config.database,
+            password: config.password,
+            port: config.port
+          });
 
-    this.connection.on("end", () => {
-        this.connectionOpen = false;
-    });
+          this.connection.on("end", () => {
+            this.connectionOpen = false;
+          });
 
-    //Connection event will pull the node information
-    this.connection.on("connect", () => {
-        this.connectionOpen = true;
+          //Connection event will pull the node information
+          this.connection.on("connect", () => {
+            this.connectionOpen = true;
+            res("Connection open");
+          }).catch((err) => {
+            rej("Failed to open connection");
+          });
+        } else {
+          res("Connection open");
+        }
     });
   }
 
   closeConnection() {
-    return false;
+    return new Promise((res, rej) => {
+      if(this.connection) {
+        this.connection.end().then(() => {
+          res("Connection closed");
+        }).catch((err) => {
+          rej(err);
+        });
+      } else {
+        rej("Connection hasn't been created");
+      }
+    });
   }
 
   getConnection() {

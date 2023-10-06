@@ -11,9 +11,10 @@ export default function getConnection() {
         if(DatabaseConnection == null) {
             //Create open connection to database and return
             try {
-                DatabaseObj.openConnecton 
-
-                res();
+                DatabaseObj.openConnecton().then((connection) => {
+                    DatabaseConnection = connection;
+                });
+                res(DatabaseConnection);
             } catch(ex) {
                 rej(ex);
             }
@@ -22,7 +23,7 @@ export default function getConnection() {
             return res(DatabaseConnection);
         }
     });
-    } 
+} 
 
 
 
