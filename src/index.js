@@ -1,5 +1,10 @@
+//importing config
+const config = require("./config/databaseConfig.json");
+console.log(config.name);
+
+
 //Importing classes
-const Node = require("../classes/Node");
+const Node = require("./classes/Node");
 
 //Express Package
 const express = require("express");
