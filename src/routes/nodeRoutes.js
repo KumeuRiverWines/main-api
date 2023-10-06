@@ -2,12 +2,16 @@
 const express = require("express");
 const router = express.Router();
 
+//Importing controllers
+const NodeController = require("../controllers/nodeController");
+
+
 /**
  * Node Routes
  */
 
 //Uplink messages from "The Things Network"
-router.post("/uplink",  returnNotImplemented);
+router.post("/uplink",  NodeController.handleUplinkRoute);
 
 //Update node mode
 router.post("/:id/mode/update", returnNotImplemented);

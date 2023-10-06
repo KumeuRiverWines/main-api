@@ -1,0 +1,9 @@
+{
+    "thethingsnetwork": {
+        "downlink": {
+            "API_KEY": "NNSXS.QOGRSXIHHVKXIWKMPW65S2X2XU3RHXB2LASVKEI.BYZCKGTG3KRWPDURS3NXKNO4WWYRBNGYKDFPB3YV4M6JN2YKTBKA",
+            "APP_ID": "kuemu-river-wines-app",
+            "WEBHOOK_ID": "api"
+        }
+    }
+}

@@ -2,16 +2,17 @@
 const express = require("express");
 const router = express.Router();
 
+const nodeDataController = require("../controllers/nodeDataController");
 
 /**
- * Data Routes
+ * nodeData Routes
  */
 
 /**
  * Get node information
  * Request param "id" = id of node
  */
-router.get("/:id/", returnNotImplemented);
+router.get("/:id/info", returnNotImplemented);
 
 /**
  * Get node data for specific sensors 
@@ -26,9 +27,12 @@ router.get("/:id/", returnNotImplemented);
  *      xM("Months")
  *      xY("Years")
  */
-router.get("/:id/sensors/", returnNotImplemented);
+router.get("/:id/sensors/", nodeDataController.getNodeDate);
 
-
+/**
+ * Gets the last reading that the node has uplinked
+ */
+router.get("/:id/sensors/last", nodeDataController.getNodeLastReading);
 
 
 function returnNotImplemented(req, res) { 
