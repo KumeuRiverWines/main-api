@@ -14,6 +14,7 @@ function getNodeSensorsDataFromTime(nodeId, sensors, timeFrom) {
             query = query.replace("${sensors}", sensors);
             query = query.replace("${time}", timeFrom);
             query = query.replace("${id}", nodeId);
+            console.log(query);
 
             const results = await dbConnection.runQuery(query);
             res(results);
