@@ -1,5 +1,4 @@
 //Importing modesl
-const nodeModel = require("../models/nodeModel");
 const nodeDataModel = require("../models/nodeDataModel");
 const nodeInfoModel = require("../models/nodeInfoModel");
 
