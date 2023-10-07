@@ -38,6 +38,7 @@ function validateNodeId(id) {
     return new Promise(async (res, rej) => {
         try {
             const nodeData = await getAllNodeInfo();
+            console.log(nodeData);
             for (index in nodeData) {
                 if (nodeData[index]["node_id"] === id) {
                     return res(true);
