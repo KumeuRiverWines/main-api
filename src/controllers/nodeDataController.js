@@ -12,6 +12,7 @@ const ErrorResponseHelper = require("../Helper/ErrorResponseHelper");
 /** UPDATED END POINTS */
 async function getNodeSensorDays(req, res)  {
 	const id = req.params.id;
+	console.log("recv");
 
 	if(id) {
 		try {
