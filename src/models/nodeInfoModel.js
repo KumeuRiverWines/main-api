@@ -39,6 +39,7 @@ function validateNodeId(id) {
         try {
             const nodeData = await getAllNodeInfo();
             console.log(nodeData);
+            console.log(id);
             for (index in nodeData) {
                 if (nodeData[index]["node_id"] === id) {
                     return res(true);
