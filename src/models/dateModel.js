@@ -31,7 +31,10 @@ function getClosestCollectionDateTime(updateTime) {
 
         //Updating the minutes	
         const newDate = new Date(date.getTime() + (minutesToAdjust * 60000));
-        return newDate;
+
+        return new Date();
+
+        //return newDate;
     } else {
         return null;
     }

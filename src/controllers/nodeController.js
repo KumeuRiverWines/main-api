@@ -1,11 +1,14 @@
 /**
  * Node controller handles requests coming from the nodeRoutes file
  */
+//Importing model
+const NodeUplinkModel = require("../models/nodeUplinkModel");
+
 //Imports
 const dateModel = require("../models/dateModel");
 const uplinkPayloadService = require("../services/uplinkPayloadService");
-const databaseModel = require("../models/databaseModel");
 const nodeModel = require("../models/nodeModel");
+
 
 //Axios setup
 const axios = require("axios");
@@ -30,14 +33,7 @@ async function handleUplinkRoute(req, res) {
 	}	
 
 	const deviceId = req.body.end_device_ids.device_id;
-	const node = nodeModel.getNode(deviceId);
-	if (!node) {
-		if(nodeModel.createNode(deviceId)) {
-			nodeModel.addNode(deviceId);
-		}
-	}
 
-	//NOW TO TYPE IS ALL OUT LEGIT
 	if ("uplink_message" in req.body) {
 		if ("decoded_payload" in req.body.uplink_message) {
 			let payload = req.body.uplink_message.decoded_payload;
@@ -63,7 +59,7 @@ async function handleUplinkRoute(req, res) {
 					console.log("Insert quries");
 					for(let index in queries) {
 						try {
-							const result = databaseModel.queryDb(queries[index]);
+							const result = await NodeUplinkModel.runUplinkQuery(queries[index]);
 							console.log(queries[index]);
 						} catch(err) {
 							console.log("ERR HERE");

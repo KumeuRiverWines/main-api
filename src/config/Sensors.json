@@ -1,0 +1,11 @@
+{
+    "Sensors": [
+        "temperature",
+        "humidity", 
+        "leaf_wetness",
+        "wind_speed",
+        "wind_direction",
+        "rainfall"
+
+    ]
+}
