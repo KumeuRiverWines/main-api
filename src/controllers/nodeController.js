@@ -7,17 +7,18 @@ const NodeUplinkModel = require("../models/nodeUplinkModel");
 //Imports
 const dateModel = require("../models/dateModel");
 const uplinkPayloadService = require("../services/uplinkPayloadService");
-const nodeModel = require("../models/nodeModel");
+//const nodeModel = require("../models/nodeModel");
 
 
 //Axios setup
+/*
 const axios = require("axios");
 
 const configuration = require("../config/configuration.json");
 const API_KEY = configuration.thethingsnetwork.downlink.API_KEY;
 const APP_ID = configuration.thethingsnetwork.downlink.APP_ID;
 const WEBHOOK_ID = configuration.thethingsnetwork.downlink.WEBHOOK_ID;
-
+*/
 
 /**
  *  Handles a uplink message from the things stack 
@@ -81,6 +82,7 @@ async function handleUplinkRoute(req, res) {
  * updgrades maybe feed the function the payload iswell so that the method is 
  * not dependand on nodeMap
  */
+/*
 async function sendDownlink(id) {
     return (new Promise((res, rej) => {
 		if(nodeMap.has(id)) {
@@ -144,6 +146,7 @@ async function handleGetNodeModeRoute(req,res) {
  *  "mode": "{mode}"
  * }
  */
+/*
 async function handleUpdateNodeRoute(req, res) {
 	const body = req.body;
 
@@ -183,12 +186,9 @@ async function handleUpdateNodeRoute(req, res) {
 		}));
 	}
 }
-
+*/
 
 //Exporting functions
 module.exports = {
-	handleUpdateNodeRoute,
-	sendDownlink,
-	handleGetNodeModeRoute,
 	handleUplinkRoute
 };

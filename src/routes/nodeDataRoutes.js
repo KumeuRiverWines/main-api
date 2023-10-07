@@ -26,7 +26,7 @@ router.get("/:id/sensors/", nodeDataController.getNodeSensorData);
 /**
  * Gets the last reading that the node has uplinked
  */
-router.get("/:id/sensors/last", nodeDataController.getNodeLastReading);
+//router.get("/:id/sensors/last", nodeDataController.getNodeLastReading);
 
 /**
  * Request params:
