@@ -1,30 +1,24 @@
 /**
  * This file implements a factory pattern which makes it so there is only one connection open to a single database
  */
-import Database from "../classes/Database";
+const Database = require("../classes/Database");
 
 const DatabaseObj = new Database();
 const DatabaseConnection = null;
 
-export default function getConnection() {
+function getConnection() {
     return new Promise((res, rej) => {
-        if(DatabaseConnection == null) {
+        if(DatabaseObj == null) {
             //Create open connection to database and return
-            try {
-                DatabaseObj.openConnecton().then((connection) => {
-                    DatabaseConnection = connection;
-                });
-                res(DatabaseConnection);
-            } catch(ex) {
-                rej(ex);
-            }
+            DatabaseObj = new Database();
+            return res(DatabaseObj); 
         } else {
             //Return the database connection
-            return res(DatabaseConnection);
+            return res(DatabaseObj);
         }
     });
 } 
 
-
-
-
+module.exports = {
+    getConnection
+};

@@ -9,12 +9,6 @@ const nodeDataController = require("../controllers/nodeDataController");
  */
 
 /**
- * Get node information
- * Request param "id" = id of node
- */
-router.get("/:id/info", returnNotImplemented);
-
-/**
  * Get node data for specific sensors 
  * Request param "id" = id of node
  * Query param "sensors" = csv of sensors wanted
@@ -27,13 +21,20 @@ router.get("/:id/info", returnNotImplemented);
  *      xM("Months")
  *      xY("Years")
  */
-router.get("/:id/sensors/", nodeDataController.getNodeDate);
+router.get("/:id/sensors/", nodeDataController.getNodeSensorData);
 
 /**
  * Gets the last reading that the node has uplinked
  */
-router.get("/:id/sensors/last", nodeDataController.getNodeLastReading);
+//router.get("/:id/sensors/last", nodeDataController.getNodeLastReading);
 
+/**
+ * Request params:
+ * id - id of node
+ * sensor - specific sensor to fetch
+ * days - number of days to collect from current time 
+ */
+router.get("/:id/sensors/:sensor/:days", nodeDataController.getNodeSensorDays);
 
 function returnNotImplemented(req, res) { 
     res.status(501).send({

@@ -1,0 +1,6 @@
+{
+    "selectAllNodeInfo": "SELECT * FROM node",
+    "selectNodeSensorDataFromTime": "SELECT ${sensors} FROM measurement WHERE timestamp BETWEEN '${time}' AND CURRENT_TIMESTAMP AND node_id='${id}'",
+    "selectNodeSingleSensorDateFromDayAgo": "SELECT ${sensor}, timestamp FROM measurement WHERE node_id='${id}' AND timestamp >= NOW() - INTERVAL '${days} days' ORDER BY timestamp DESC",
+    "getForcecastData": "SELECT * FROM forecast"
+}

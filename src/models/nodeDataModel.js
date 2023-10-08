@@ -1,33 +1,51 @@
-const databaseModel = require("../models/databaseModel");
-
+const { getConnection } = require("../services/DatabaseConnectionFactory");
+const sqlQueries = require("../config/SQL_queries.json");
 
 /**
  * Functions
  */
+function getNodeSensorsDataFromTime(nodeId, sensors, timeFrom) {
+    return new Promise(async (res, rej) => {
+        try {
+            const dbConnection = await getConnection();
 
-/**
- * Gets the last sensor reading that was uplinked from the node 
- * Assumes that valid ID is passed in
- * @param { String } id valid id
- * @returns rowObj || NULL
- */
-async function getLastNodeReading(id) {
-    return new Promise((res, rej) => {
-        const query = `SELECT * FROM measurement WHERE node_id='${id}' ORDER BY timestamp DESC LIMIT 1`;
+            let query = sqlQueries.selectNodeSensorDataFromTime;
+            //Now we fill the query with the information we want
+            query = query.replace("${sensors}", sensors);
+            query = query.replace("${time}", timeFrom);
+            query = query.replace("${id}", nodeId);
+            console.log(query);
 
-        databaseModel.queryDb(query).then((result) => {
-            if(result.rows >= 1) {
-                res(result.rows[0]);
-            } else {
-                rej(null);
-            }
-        }).catch((err) => {
-            rej(null);
-        });
+            const results = await dbConnection.runQuery(query);
+            res(results);
+        } catch(err) {
+            rej(err);
+        }
+    });
+}
+
+function getNodeSensorDataFromDay(nodeId, sensor, days) {
+    return new Promise(async (res, rej) => {
+       const dbConnection = await getConnection(); 
+
+       let query = sqlQueries.selectNodeSingleSensorDateFromDayAgo;
+       query = query.replace("${id}", nodeId);
+       query = query.replace("${days}", days);
+       query = query.replace("${sensor}", sensor);
+
+       console.log(query);
+
+       const results = await dbConnection.runQuery(query);
+       res(results);
     });
 }
 
 
+
+
+
+
 module.exports = {
-    getLastNodeReading
+    getNodeSensorsDataFromTime,
+    getNodeSensorDataFromDay
 };

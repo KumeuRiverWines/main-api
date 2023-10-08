@@ -1,11 +1,14 @@
-async function getForecast(req, res) {
-    const sql = "Select * FROM forecast";
+const forecastModel = require("../models/forecastModel");
 
+
+async function getForecast(req, res) {
     try {
-        const response = await pool.query(sql);
-        res.send(response.rows);
+        const results = await forecastModel.getForcastData();
+        res.send(results);
     } catch (error) {
-        console.log(error);
+        res.send({
+            error: "Error collecting forecast data"
+        });
     }
 }
 

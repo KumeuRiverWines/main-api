@@ -4,7 +4,7 @@ const router = express.Router();
 
 
 
-router.get("/", returnNotImplemented);
+router.get("/data/all/allforecast", returnNotImplemented);
 
 
 function returnNotImplemented(req, res) { 

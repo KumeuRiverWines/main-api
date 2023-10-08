@@ -1,99 +1,127 @@
 //Importing modesl
-const nodeModel = require("../models/nodeModel");
-const databaseModel = require("../models/databaseModel");
 const nodeDataModel = require("../models/nodeDataModel");
+const nodeInfoModel = require("../models/nodeInfoModel");
 
-async function getAllNodeData(req, res) {
-	let count = 10; //Default count is 10
-	//Getting request parameters
-	const params = req.query;
-	if("count" in params) {
-		const tempCount = parseInt(params.count); //parsing for int
-		if(tempCount >= 1 && tempCount !== NaN) {
-			count = tempCount;
-		} else {
-			res.status(400).send({
-				error: "invalid param"
-			});
-			return;
-		}
-	}
+//Importing sensor config file
+const Sensors = require("../config/Sensors.json");
 
-    const sql = `SELECT * FROM measurement ORDER BY timestamp DESC LIMIT ${count}`;
+//Importing helper functions
+const ErrorResponseHelper = require("../Helper/ErrorResponseHelper");
 
-    try {
-        const response =  await pool.query(sql);
-        res.send(response.rows);
-    } catch(error) {
-        console.log(error);
-    }
-}
 
-async function getNodeDate(req,res) {
-	const params = req.query;	
-	if("count" in params && "id" in params) {
-		const sql = `SELECT * FROM measurement WHERE node_id='${params.id}' ORDER BY timestamp DESC LIMIT ${params.count}`;
-
-		try {
-			const results = await queryDb(sql);
-			res.send(results.rows);
-		} catch(err) {
-			res.send({
-				error: "ERROR WITH DB"
-			});
-		}
-	} else {
-		res.send({
-			error: "Invalid params"
-		});
-	}
-}
-
-async function getNodeTemperature(req, res) {
-	const sql = "SELECT node_id, temperature, timestamp FROM measurement WHERE timestamp >= NOW() - INTERVAL '10 days' ORDER BY timestamp DESC";
-
-	try {
-		const response = await pool.query(sql);
-		res.send(response.rows);
-	} catch (error) {
-		console.log(error);
-	}
-}
-
-async function getNodeLastReading(req, res) {
+/** UPDATED END POINTS */
+async function getNodeSensorDays(req, res)  {
 	const id = req.params.id;
-	
-	if(id) {
-		const node = nodeModel.getNodeFromId(id);
-		if(node) {
-			const lastReadingObj = await nodeDataModel.getLastNodeReading(body.id);
+	console.log("recv");
 
-			if(lastReadingObj) {
-				res.send({
-					lastReadingObj
+	if(id) {
+		try {
+			const validNode = await nodeInfoModel.validateNodeId(id);
+
+			if(validNode) {
+				const sensor = req.params.sensor;
+				let days = req.params.days;
+
+				//Validating sensor
+				let validSensor = new Promise((res) => {
+					for (let index in Sensors.sensors) {
+						console.log(Sensors.sensor[index]);
+						if (sensor == Sensors.sensors[index]) {
+							return res(true);
+						}
+					}
+					return res(false);
 				});
+				
+
+				if(validSensor) {
+					if(!isNaN(days))	{
+						days = parseInt(days);
+
+						const results = await nodeDataModel.getNodeSensorDataFromDay(id, sensor, days);
+						res.send({
+							nodeId: id,
+							sensorData: results
+						});
+					} else {
+						ErrorResponseHelper.res(res, "Invalid Day given please give a int of days")
+					}
+				} else {
+					ErrorResponseHelper.resInvalidParams(res, "Invalid Sensor given");
+				}
 			} else {
 				res.send({
-					message: "Not entry found"
+					validId: false,
 				});
 			}
-		} else {
+		} catch(err) {
 			res.send({
-				message: "Node doesn't exist"
+				message: "Internel error connecting to db"
 			});
 		}
 	} else {
-		res.send({
-			message: "Invalid params"
-		});
+		ErrorResponseHelper.resInvalidParams(res, "node Id not given");	
 	}
 }
 
+//
+async function getNodeSensorData(req, res) {
+	const id = req.params.id;
+
+	if(id) {
+		//Checking if node ID is valid		
+		try {
+			const validNode = await nodeInfoModel.validateNodeId(id);
+			if(validNode) {
+				//Valid id so now we collect sensors information	
+				const sensorsString = req.query.sensors;	
+				let timeString = req.query.time;
+
+				if(sensorsString && timeString) {
+					//Validating sensors
+					const splitString = sensorsString.split(",");
+					for(let i in splitString) {
+						for(let j in Sensors.sensors) {
+							if(splitString[i] != Sensors.sensors[j]) {
+								return ErrorResponseHelper.resInvalidParams("Invalid sensors given");
+							}
+						}
+					}
+
+					try {
+						const backDate = new Date(timeString);
+						timeString = backDate.toISOString();
+					} catch(err) {
+						return ErrorResponseHelper.resInvalidParams(res, "Invalid Date format needs to be ISO string");
+					}
+
+					const results = await nodeDataModel.getNodeSensorsDataFromTime(id, sensorsString, timeString);
+					res.send({
+						nodeId: id,
+						sensorData: results
+					});
+
+				} else {
+					ErrorResponseHelper.resInvalidParams(res, "No sensors or time given");
+				}
+			} else {
+				res.send({
+					validId: false
+				});
+			}
+		} catch(err) {
+			console.log(err);
+			res.send({
+				error: "Error fetching Data from DB"
+			});
+		}
+	} else {
+		ErrorResponseHelper.resInvalidParams(res, "node Id not given");	
+	}
+}
 
 
 module.exports = {
-    getAllNodeData,
-    getNodeTemperature,
-    getNodeDate,
-	getNodeLastReading
+	getNodeSensorData,
+	getNodeSensorDays	
 };
