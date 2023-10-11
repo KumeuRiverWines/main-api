@@ -1,6 +1,6 @@
 {
     "user": "postgres",
-    "host": "192.168.1.2",
+    "host": "127.0.0.1",
     "database": "kumeudb",
     "password": "postgres",
     "port": "5432"
